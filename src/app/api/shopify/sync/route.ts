@@ -65,14 +65,23 @@ export async function GET() {
         cost: Math.round(price * 0.3),
         weight: 250,
         tags: node.tags || [],
-        images: imageNode ? [{
-          id: imageNode.id,
-          src: imageNode.url,
-          alt: imageNode.altText || node.title,
-          position: 1,
-          width: imageNode.width || 800,
-          height: imageNode.height || 1000,
-        }] : [],
+        images: Array.isArray(node.images?.edges) && node.images.edges.length > 0
+          ? node.images.edges.map(({ node: img }: any, idx: number) => ({
+              id: img.id,
+              src: img.url,
+              alt: img.altText || node.title,
+              position: idx + 1,
+              width: img.width || 800,
+              height: img.height || 1000,
+            }))
+          : (imageNode ? [{
+              id: imageNode.id,
+              src: imageNode.url,
+              alt: imageNode.altText || node.title,
+              position: 1,
+              width: imageNode.width || 800,
+              height: imageNode.height || 1000,
+            }] : []),
         variants: node.variants?.edges?.map(({ node: v }: any) => ({
           id: v.id.split('/').pop() || v.id,
           sku: v.sku || '',
