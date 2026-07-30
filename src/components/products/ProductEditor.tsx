@@ -11,6 +11,7 @@ import { useUIStore } from '@/lib/store/ui.store'
 import { type Product } from '@/lib/mock/products'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { classifyProduct } from '@/lib/brand/brain'
 
 export function ProductEditor({ product }: { product: Product }) {
   const [activeTab, setActiveTab] = useState('general')
@@ -21,6 +22,8 @@ export function ProductEditor({ product }: { product: Product }) {
   const [price, setPrice] = useState(product?.price || 0)
   const [compareAtPrice, setCompareAtPrice] = useState(product?.compareAtPrice || 0)
   const [variants, setVariants] = useState(product?.variants || [])
+  const [seoTitle, setSeoTitle] = useState(product?.seo?.title || `${product?.title || ''} | AYA Activewear`)
+  const [seoDesc, setSeoDesc] = useState(product?.seo?.description || "Discover our latest activewear collection. Designed for movement, crafted for comfort. Free shipping on orders over €100.")
   
   const [isPending, startTransition] = useTransition()
   const addNotification = useUIStore(s => s.addNotification)
@@ -101,6 +104,31 @@ export function ProductEditor({ product }: { product: Product }) {
     })
   }
 
+  // Handle SEO auto generation from Brand Brain
+  const handleGenerateTitle = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const brain = classifyProduct(product.title, product.seo?.description || '')
+    setSeoTitle(brain.seo.title)
+    addNotification({
+      type: 'success',
+      title: 'SEO Title Generated',
+      message: 'Luxury editorial title generated successfully based on Brand Brain.',
+      duration: 3000
+    })
+  }
+
+  const handleGenerateDescription = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const brain = classifyProduct(product.title, product.seo?.description || '')
+    setSeoDesc(brain.seo.description)
+    addNotification({
+      type: 'success',
+      title: 'SEO Description Generated',
+      message: 'Luxury editorial meta description generated successfully based on Brand Brain.',
+      duration: 3000
+    })
+  }
+
   // Handle saving changes
   const handleSaveChanges = () => {
     const title = titleRef.current?.value || product.title
@@ -127,7 +155,11 @@ export function ProductEditor({ product }: { product: Product }) {
               compareAtPrice: v.compareAtPrice,
               sku: v.sku,
               barcode: v.barcode
-            }))
+            })),
+            seo: {
+              title: seoTitle,
+              description: seoDesc
+            }
           })
         })
 
@@ -374,8 +406,8 @@ export function ProductEditor({ product }: { product: Product }) {
                 <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Search Engine Optimization</h3>
                 
                 <SEOPreview 
-                  title={`${product?.title || 'Product'} | AYA Activewear`} 
-                  description={product?.seo?.description || "Discover our latest activewear collection. Designed for movement, crafted for comfort. Free shipping on orders over €100."}
+                  title={seoTitle} 
+                  description={seoDesc}
                   handle={product?.seo?.handle || 'product-handle'}
                 />
 
@@ -396,22 +428,34 @@ export function ProductEditor({ product }: { product: Product }) {
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-[12px] text-[#737373]">Meta Title</label>
-                      <button className="text-[11px] text-[#A855F7] hover:underline flex items-center gap-1 font-medium">
+                      <button 
+                        onClick={handleGenerateTitle}
+                        className="text-[11px] text-[#A855F7] hover:underline flex items-center gap-1 font-medium"
+                      >
                         <Sparkles className="w-3 h-3" /> Generate
                       </button>
                     </div>
-                    <input type="text" defaultValue={product?.seo?.title || `${product?.title || ''} | AYA Activewear`} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
+                    <input 
+                      type="text" 
+                      value={seoTitle} 
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" 
+                    />
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
                       <label className="block text-[12px] text-[#737373]">Meta Description</label>
-                      <button className="text-[11px] text-[#A855F7] hover:underline flex items-center gap-1 font-medium">
+                      <button 
+                        onClick={handleGenerateDescription}
+                        className="text-[11px] text-[#A855F7] hover:underline flex items-center gap-1 font-medium"
+                      >
                         <Sparkles className="w-3 h-3" /> Generate
                       </button>
                     </div>
                     <textarea 
                       rows={4}
-                      defaultValue={product?.seo?.description || "Discover our latest activewear collection. Designed for movement, crafted for comfort. Free shipping on orders over €100."}
+                      value={seoDesc}
+                      onChange={(e) => setSeoDesc(e.target.value)}
                       className="w-full p-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors resize-y" 
                     />
                   </div>

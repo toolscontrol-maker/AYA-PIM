@@ -5,7 +5,7 @@ import { PRODUCT_UPDATE_MUTATION, PRODUCT_VARIANTS_BULK_UPDATE_MUTATION } from '
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { id, title, status, vendor, tags, variants } = body
+    const { id, title, status, vendor, tags, variants, seo } = body
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 })
@@ -22,7 +22,11 @@ export async function POST(req: NextRequest) {
           title,
           status: status ? status.toUpperCase() : undefined,
           vendor,
-          tags: Array.isArray(tags) ? tags : undefined
+          tags: Array.isArray(tags) ? tags : undefined,
+          seo: seo ? {
+            title: seo.title || undefined,
+            description: seo.description || undefined
+          } : undefined
         }
       }
     })
