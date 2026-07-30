@@ -155,13 +155,20 @@ export default function LibraryPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               variantId: v.id,
-              size: v.size,
               color: auditItem.luxuryProposal
             })
           })
 
           if (response.ok) {
-            successCount++
+            const resData = await response.json()
+            if (resData.success) {
+              successCount++
+            } else {
+              console.error('Failed variant option update:', resData.error)
+            }
+          } else {
+            const errData = await response.json()
+            console.error('API Error updating variant:', errData.error)
           }
         }
 

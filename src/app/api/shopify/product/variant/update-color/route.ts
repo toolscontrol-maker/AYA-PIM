@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { shopifyFetch } from '@/lib/shopify/client'
 
+const GET_VARIANT_OPTIONS_QUERY = `
+  query GetVariantOptions($id: ID!) {
+    productVariant(id: $id) {
+      id
+      selectedOptions {
+        name
+        value
+      }
+    }
+  }
+`
+
 const UPDATE_VARIANT_OPTIONS_MUTATION = `
   mutation productVariantUpdate($input: ProductVariantInput!) {
     productVariantUpdate(input: $input) {
@@ -23,7 +35,7 @@ const UPDATE_VARIANT_OPTIONS_MUTATION = `
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { variantId, size, color } = body
+    const { variantId, color } = body
 
     if (!variantId || !color) {
       return NextResponse.json({ success: false, error: 'Variant ID and Color value are required' }, { status: 400 })
@@ -41,20 +53,40 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Prepare options array. Shopify takes options in order (e.g. ["M", "Noir"])
-    const options = size ? [size, color] : [color]
-
-    const data = await shopifyFetch<any>({
-      query: UPDATE_VARIANT_OPTIONS_MUTATION,
-      variables: {
-        input: {
-          id: fullVariantId,
-          options
-        }
-      }
+    // 1. Fetch current variant details from Shopify to find the correct Option index for "Color"
+    const variantData = await shopifyFetch<any>({
+      query: GET_VARIANT_OPTIONS_QUERY,
+      variables: { id: fullVariantId }
     })
 
-    const errors = data?.productVariantUpdate?.userErrors || []
+    const selectedOptions = variantData?.productVariant?.selectedOptions || []
+    if (selectedOptions.length === 0) {
+      throw new Error(`Variant ${fullVariantId} options not found on Shopify.`)
+    }
+
+    // 2. Map color to the correct option index (option1, option2, or option3)
+    const colorOptionIdx = selectedOptions.findIndex((o: any) => o.name.toLowerCase() === 'color')
+    
+    if (colorOptionIdx === -1) {
+      throw new Error(`Variant does not have a "Color" option. Current options: ${selectedOptions.map((o: any) => o.name).join(', ')}`)
+    }
+
+    // Build the mutation input payload mapping
+    const input: Record<string, any> = {
+      id: fullVariantId
+    }
+
+    if (colorOptionIdx === 0) input.option1 = color
+    if (colorOptionIdx === 1) input.option2 = color
+    if (colorOptionIdx === 2) input.option3 = color
+
+    // 3. Execute the Shopify update
+    const updateData = await shopifyFetch<any>({
+      query: UPDATE_VARIANT_OPTIONS_MUTATION,
+      variables: { input }
+    })
+
+    const errors = updateData?.productVariantUpdate?.userErrors || []
     if (errors.length > 0) {
       return NextResponse.json({
         success: false,
@@ -65,7 +97,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       source: 'shopify',
-      variant: data?.productVariantUpdate?.productVariant
+      variant: updateData?.productVariantUpdate?.productVariant
     })
   } catch (error: any) {
     return NextResponse.json({
