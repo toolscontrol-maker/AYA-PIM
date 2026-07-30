@@ -47,7 +47,7 @@ const NAVIGATION: Record<string, NavSection[]> = {
     {
       title: 'Identity',
       items: [
-        { label: 'Brand DNA', href: '/brand', icon: Fingerprint },
+        { label: 'Brand Brain', href: '/brand', icon: Fingerprint },
         { label: 'Voice & Copy', href: '/brand/voice', icon: Type },
         { label: 'Color Palette', href: '/brand/colors', icon: Palette },
         { label: 'Materials', href: '/brand/materials', icon: Box },

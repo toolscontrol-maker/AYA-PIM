@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 const MODULES = [
   { id: 'pim', label: 'PIM', icon: Package, href: '/products', description: 'Product Information', basePaths: ['/products', '/collections', '/categories', '/tags', '/metafields', '/images', '/bulk', '/templates', '/import'] },
-  { id: 'brand', label: 'Brand System', icon: Fingerprint, href: '/brand', description: 'Brand DNA & Rules', basePaths: ['/brand'] },
+  { id: 'brand', label: 'Brand Brain', icon: Fingerprint, href: '/brand', description: 'Brand DNA & Rules', basePaths: ['/brand'] },
   { id: 'ai', label: 'AI Studio', icon: Sparkles, href: '/ai-studio', description: 'AI Production Engine', basePaths: ['/ai-studio'] },
   { id: 'content', label: 'Content Studio', icon: FileText, href: '/content', description: 'Pages & Blogs', basePaths: ['/content'] },
   { id: 'analytics', label: 'Analytics', icon: BarChart2, href: '/analytics', description: 'Catalog Health', basePaths: ['/analytics'] },

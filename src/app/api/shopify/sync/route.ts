@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { shopifyFetch } from '@/lib/shopify/client'
 import { GET_PRODUCTS_QUERY } from '@/lib/shopify/queries'
 import { mockProducts } from '@/lib/mock/products'
+import { classifyProduct } from '@/lib/brand/brain'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -12,7 +15,7 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         source: 'mock',
-        message: 'Credentials configured. Using local catalog mock until live shopify installation is granted.',
+        message: 'Credentials missing. Using local catalog mock until live shopify installation is granted.',
         products: mockProducts,
       })
     }
@@ -24,7 +27,7 @@ export async function GET() {
 
     const rawProducts = data?.products?.edges || []
     
-    // Transform Shopify GraphQL products to AYA PIM Product format
+    // Transform Shopify GraphQL products to AYA PIM Product format using AYA Brand Brain
     const products = rawProducts.map(({ node }: any) => {
       const firstVariant = node.variants?.edges?.[0]?.node
       const imageNode = node.featuredImage || node.images?.edges?.[0]?.node
@@ -33,36 +36,39 @@ export async function GET() {
       const price = firstVariant?.price ? parseFloat(firstVariant.price) : 0
       const compareAtPrice = firstVariant?.compareAtPrice ? parseFloat(firstVariant.compareAtPrice) : null
 
+      // Run AYA Brand Brain semantic classifier
+      const brain = classifyProduct(node.title, node.descriptionHtml || '')
+
       return {
         id: node.id.split('/').pop() || node.id,
-        handle: node.handle,
+        handle: brain.seo.handle || node.handle,
         title: node.title,
         shortName: node.title.split(' ')[0] || node.title,
         sku: firstVariant?.sku || 'N/A',
         barcode: firstVariant?.barcode || '',
         vendor: node.vendor || 'AYA',
-        status: node.status?.toLowerCase() || 'active',
+        status: (node.status?.toLowerCase() || 'active') as 'active' | 'draft' | 'archived',
         publishedAt: node.publishedAt,
         createdAt: node.createdAt,
         updatedAt: node.updatedAt,
-        gender: 'unisex',
-        category: node.productType || 'Activewear',
-        subcategory: node.productType || 'General',
+        gender: brain.gender.toLowerCase() as 'women' | 'men' | 'unisex',
+        category: brain.mainCategory,
+        subcategory: brain.subcategory,
         collection: collectionsList[0] || 'Core Collection',
-        season: 'SS25',
-        color: 'Noir',
-        colorCode: '#0F0F0F',
+        season: 'SS25' as 'SS25' | 'AW25' | 'SS24' | 'AW24' | 'Core' | 'Permanent',
+        color: brain.color.displayName,
+        colorCode: brain.color.hex,
         material: 'Polyamide',
         sizes: ['XS', 'S', 'M', 'L', 'XL'],
         price: price,
         compareAtPrice: compareAtPrice,
         cost: Math.round(price * 0.3),
         weight: 250,
-        tags: node.tags || [],
+        tags: brain.tags,
         images: imageNode ? [{
           id: imageNode.id,
           src: imageNode.url,
-          alt: imageNode.altText || node.title,
+          alt: imageNode.altText || brain.seo.imageALT || node.title,
           position: 1,
           width: imageNode.width || 800,
           height: imageNode.height || 1000,
@@ -79,14 +85,14 @@ export async function GET() {
           barcode: v.barcode || '',
         })) || [],
         seo: {
-          title: node.seo?.title || node.title,
-          description: node.seo?.description || node.descriptionHtml?.replace(/<[^>]*>?/gm, '') || '',
-          handle: node.handle,
-          score: 85,
-          issues: [],
+          title: brain.seo.title || node.title,
+          description: brain.seo.description || node.descriptionHtml?.replace(/<[^>]*>?/gm, '') || '',
+          handle: brain.seo.handle || node.handle,
+          score: brain.confidence,
+          issues: brain.confidence < 80 ? ['Confidence score below AYA thresholds'] : [],
         },
-        metafields: {},
-        completeness: 90,
+        metafields: brain.metafields,
+        completeness: brain.confidence,
       }
     })
 
