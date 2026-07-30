@@ -41,7 +41,7 @@ export async function GET() {
 
       return {
         id: node.id.split('/').pop() || node.id,
-        handle: brain.seo.handle || node.handle,
+        handle: node.handle,
         title: node.title,
         shortName: node.title.split(' ')[0] || node.title,
         sku: firstVariant?.sku || 'N/A',
@@ -64,11 +64,11 @@ export async function GET() {
         compareAtPrice: compareAtPrice,
         cost: Math.round(price * 0.3),
         weight: 250,
-        tags: brain.tags,
+        tags: node.tags || [],
         images: imageNode ? [{
           id: imageNode.id,
           src: imageNode.url,
-          alt: imageNode.altText || brain.seo.imageALT || node.title,
+          alt: imageNode.altText || node.title,
           position: 1,
           width: imageNode.width || 800,
           height: imageNode.height || 1000,
@@ -85,9 +85,9 @@ export async function GET() {
           barcode: v.barcode || '',
         })) || [],
         seo: {
-          title: brain.seo.title || node.title,
-          description: brain.seo.description || node.descriptionHtml?.replace(/<[^>]*>?/gm, '') || '',
-          handle: brain.seo.handle || node.handle,
+          title: node.seo?.title || node.title,
+          description: node.seo?.description || node.descriptionHtml?.replace(/<[^>]*>?/gm, '') || '',
+          handle: node.handle,
           score: brain.confidence,
           issues: brain.confidence < 80 ? ['Confidence score below AYA thresholds'] : [],
         },
