@@ -25,6 +25,7 @@ export default function LibraryPage() {
   const [activePalette, setActivePalette] = useState<AYAColor[]>(COLOR_LIBRARY)
   const [products, setProducts] = useState<any[]>([])
   const [isPending, startTransition] = useTransition()
+  const [expandedColorName, setExpandedColorName] = useState<string | null>(null)
   const addNotification = useUIStore(s => s.addNotification)
 
   const scanAllVariantColors = async () => {
@@ -333,41 +334,94 @@ export default function LibraryPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E5E5]">
-                      {auditedColors.map((item) => (
-                        <tr key={item.rawName} className="hover:bg-[#FAFAFA]/50 transition-colors">
-                          <td className="p-3 font-semibold text-[#0A0A0A]">{item.rawName}</td>
-                          <td className="p-3">
-                            <div className="w-5 h-5 rounded-full border border-gray-300 shadow-inner" style={{ backgroundColor: item.hex }} />
-                          </td>
-                          <td className="p-3">
-                            <span className="font-mono text-purple-600 font-bold flex items-center gap-1.5">
-                              <Sparkles className="w-3 h-3 text-purple-500" /> {item.luxuryProposal}
-                            </span>
-                          </td>
-                          <td className="p-3 font-medium text-[#737373]">
-                            {item.affectedVariants.length} variant{item.affectedVariants.length === 1 ? '' : 's'}
-                          </td>
-                          <td className="p-3">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
-                              item.isMapped 
-                                ? "bg-green-50 text-green-700 border-green-200" 
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}>
-                              {item.isMapped ? "Active Mapping" : "Improvement Suggestion"}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right">
-                            <button 
-                              onClick={() => handleApplyColorRenaming(item)}
-                              disabled={isPending}
-                              className="bg-[#0A0A0A] text-white px-3 py-1 rounded text-[11px] font-medium hover:bg-[#404040] disabled:opacity-50 transition-colors flex items-center gap-1 ml-auto"
+                      {(() => {
+                        const getAffectedProducts = (variants: any[]) => {
+                          const productsMap: Record<string, { title: string; sizes: string[] }> = {}
+                          variants.forEach(av => {
+                            if (!productsMap[av.productId]) {
+                              productsMap[av.productId] = { title: av.productTitle, sizes: [] }
+                            }
+                            if (!productsMap[av.productId].sizes.includes(av.size)) {
+                              productsMap[av.productId].sizes.push(av.size)
+                            }
+                          })
+                          return Object.entries(productsMap).map(([id, data]) => ({
+                            id,
+                            title: data.title,
+                            sizes: data.sizes
+                          }))
+                        }
+
+                        return auditedColors.map((item) => (
+                          <React.Fragment key={item.rawName}>
+                            <tr 
+                              onClick={() => setExpandedColorName(expandedColorName === item.rawName ? null : item.rawName)}
+                              className="hover:bg-[#FAFAFA] transition-colors cursor-pointer"
                             >
-                              {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
-                              Rename {item.affectedVariants.length} Variants
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <td className="p-3 font-semibold text-[#0A0A0A]">{item.rawName}</td>
+                              <td className="p-3">
+                                <div className="w-5 h-5 rounded-full border border-gray-300 shadow-inner" style={{ backgroundColor: item.hex }} />
+                              </td>
+                              <td className="p-3">
+                                <span className="font-mono text-purple-600 font-bold flex items-center gap-1.5">
+                                  <Sparkles className="w-3 h-3 text-purple-500" /> {item.luxuryProposal}
+                                </span>
+                              </td>
+                              <td className="p-3 font-medium text-[#737373]">
+                                {item.affectedVariants.length} variant{item.affectedVariants.length === 1 ? '' : 's'}
+                              </td>
+                              <td className="p-3">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                  item.isMapped 
+                                    ? "bg-green-50 text-green-700 border-green-200" 
+                                    : "bg-amber-50 text-amber-700 border-amber-200"
+                                }`}>
+                                  {item.isMapped ? "Active Mapping" : "Improvement Suggestion"}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  onClick={() => handleApplyColorRenaming(item)}
+                                  disabled={isPending}
+                                  className="bg-[#0A0A0A] text-white px-3 py-1 rounded text-[11px] font-medium hover:bg-[#404040] disabled:opacity-50 transition-colors flex items-center gap-1 ml-auto"
+                                >
+                                  {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                                  Rename {item.affectedVariants.length} Variants
+                                </button>
+                              </td>
+                            </tr>
+                            
+                            {expandedColorName === item.rawName && (
+                              <tr className="bg-[#FAFAFA]/30">
+                                <td colSpan={6} className="p-4 border-t border-[#E5E5E5] bg-[#FAFAFA]/10">
+                                  <div className="space-y-2.5">
+                                    <h4 className="text-[10px] font-bold text-[#737373] uppercase tracking-wider">Affected Products & Sizes</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                      {getAffectedProducts(item.affectedVariants).map(p => (
+                                        <div key={p.id} className="p-2.5 bg-white border border-[#E5E5E5] rounded shadow-sm flex justify-between items-center">
+                                          <div className="truncate pr-4">
+                                            <a 
+                                              href={`/products/${p.id}`}
+                                              className="text-xs font-semibold text-[#0A0A0A] hover:underline truncate block"
+                                              onClick={(e) => e.stopPropagation()} // Prevent collapse when navigating
+                                            >
+                                              {p.title}
+                                            </a>
+                                            <span className="text-[10px] text-[#737373] block mt-0.5 font-mono">Sizes: {p.sizes.join(', ')}</span>
+                                          </div>
+                                          <span className="text-[9px] font-mono font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                                            {item.affectedVariants.filter(v => v.productId === p.id).length} var
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))
+                      })()}
                     </tbody>
                   </table>
                 </div>
