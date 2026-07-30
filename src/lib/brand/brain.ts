@@ -328,9 +328,10 @@ export function classifyProduct(title: string, description: string = ''): Classi
 
 // Function to allow adding new rules
 export function addBrainRule(rule: Omit<BrainRule, 'id'>) {
+  const uniqueId = `rule_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   const newRule: BrainRule = {
     ...rule,
-    id: `rule_${Date.now()}`
+    id: uniqueId
   };
   brainRules.push(newRule);
   return newRule;
