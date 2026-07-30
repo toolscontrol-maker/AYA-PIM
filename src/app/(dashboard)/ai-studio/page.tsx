@@ -4,7 +4,7 @@ import React, { useState, useEffect, useTransition } from 'react'
 import { 
   Sparkles, Type, AlignLeft, Tags, LayoutList, Scissors, 
   Image as ImageIcon, Search, CheckCircle2, ChevronRight, 
-  Play, Loader2, ArrowRight, X, AlertCircle
+  Play, Loader2, ArrowRight, X, AlertCircle, Palette
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/ui.store'
 import { cn } from '@/lib/utils'
@@ -112,7 +112,7 @@ export default function AIStudioPage() {
           }
 
           if (actionName === 'Rename Products' || actionName === 'Organize all products') {
-            const reconstructedTitle = `${brain.gender === 'Woman' ? "Women's" : "Men's"} ${brain.naming.fit} ${brain.naming.subcategory}`
+            const reconstructedTitle = `${brain.gender === 'Woman' ? "Women's" : "Men's"} ${brain.naming.fit} ${brain.naming.subcategory} in ${brain.color.luxuryName}`
             generatedDiffs.push({
               productId: p.id,
               productTitle: p.title,
@@ -120,6 +120,17 @@ export default function AIStudioPage() {
               oldValue: p.title,
               newValue: reconstructedTitle,
               rawProposedProduct: { ...p, title: reconstructedTitle }
+            })
+          }
+
+          if (actionName === 'Optimize Color Names' || actionName === 'Organize all products') {
+            generatedDiffs.push({
+              productId: p.id,
+              productTitle: p.title,
+              field: 'Luxury Color Name',
+              oldValue: p.color || 'Basic Color',
+              newValue: brain.color.luxuryName,
+              rawProposedProduct: { ...p, color: brain.color.luxuryName }
             })
           }
 
@@ -162,14 +173,22 @@ export default function AIStudioPage() {
               title: diff.rawProposedProduct.title,
               tags: diff.rawProposedProduct.tags,
             }
-          } else {
-            // Merge properties
-            if (diff.field === 'Product Title') {
-              productUpdatesMap[diff.productId].title = diff.newValue
-            }
-            if (diff.field === 'Tags') {
-              productUpdatesMap[diff.productId].tags = diff.newValue.split(', ')
-            }
+          }
+          
+          // Merge properties
+          if (diff.field === 'Product Title') {
+            productUpdatesMap[diff.productId].title = diff.newValue
+          }
+          if (diff.field === 'Tags') {
+            productUpdatesMap[diff.productId].tags = diff.newValue.split(', ')
+          }
+          if (diff.field === 'SEO Title') {
+            if (!productUpdatesMap[diff.productId].seo) productUpdatesMap[diff.productId].seo = {}
+            productUpdatesMap[diff.productId].seo.title = diff.newValue
+          }
+          if (diff.field === 'Meta Description') {
+            if (!productUpdatesMap[diff.productId].seo) productUpdatesMap[diff.productId].seo = {}
+            productUpdatesMap[diff.productId].seo.description = diff.newValue
           }
         })
 
@@ -276,6 +295,7 @@ export default function AIStudioPage() {
 
           <ActionGroup title="Organization">
             <ActionButton icon={<Tags />} label="Generate Tags" time="~1s" onClick={() => runAIPipeline('Generate Tags')} disabled={actionState !== 'idle' || loadingProducts} />
+            <ActionButton icon={<Palette />} label="Optimize Color Names" time="~1s" onClick={() => runAIPipeline('Optimize Color Names')} disabled={actionState !== 'idle' || loadingProducts} />
           </ActionGroup>
         </div>
 
