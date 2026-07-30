@@ -1,34 +1,90 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, Plus, Grid2X2, List, MoreHorizontal, Edit, X, Save } from "lucide-react";
-// import { mockCollections } from "@/lib/mock/collections";
+import React, { useState, useEffect, useTransition } from "react";
+import { Search, Plus, Grid2X2, List, MoreHorizontal, Edit, X, Save, RefreshCw, Layers } from "lucide-react";
+import { useUIStore } from "@/lib/store/ui.store";
 
-// Fallback mock data if import fails
-const mockCollections = [
-  { id: "1", name: "Summer 2024", type: "Manual", productCount: 45, updated: "2024-05-12", status: "Published", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80" },
-  { id: "2", name: "Core Leggings", type: "Smart", productCount: 12, updated: "2024-05-10", status: "Published", image: "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&q=80" },
-  { id: "3", name: "Sale", type: "Smart", productCount: 89, updated: "2024-05-01", status: "Draft", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80" },
-];
+interface Collection {
+  id: string;
+  name: string;
+  handle: string;
+  type: 'Smart' | 'Manual';
+  productCount: number;
+  updated: string;
+  status: string;
+  image: string;
+  description: string;
+}
 
 export default function CollectionsPage() {
   const [view, setView] = useState<"grid" | "table">("grid");
-  const [selectedCollection, setSelectedCollection] = useState<any | null>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCollection, setSelectedCollection] = useState<Collection | any | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const addNotification = useUIStore(s => s.addNotification);
+
+  // Fetch collections from the newly created API endpoint
+  const fetchCollections = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/shopify/collections');
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setCollections(data.collections);
+      } else {
+        throw new Error(data.error || 'Failed to fetch collections');
+      }
+    } catch (err: any) {
+      addNotification({
+        type: 'error',
+        title: 'Error loading collections',
+        message: err.message || 'Make sure your Shopify credentials are correct.',
+        duration: 5000
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  // Filter collections based on search query
+  const filteredCollections = collections.filter(col => 
+    col.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    col.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    col.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="flex-1 overflow-auto bg-[#FAFAFA] text-[#0A0A0A] p-8 h-full flex flex-col relative">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-semibold mb-1">Collections</h1>
-          <p className="text-[#737373] text-sm">{mockCollections.length} collections</p>
+          <p className="text-[#737373] text-sm">
+            {loading ? "Loading..." : `${collections.length} collections fetched from Shopify`}
+          </p>
         </div>
-        <button 
-          onClick={() => setSelectedCollection({ name: "", type: "Manual" })}
-          className="bg-[#0A0A0A] text-white px-4 py-2 rounded-md text-sm font-medium flex items-center hover:bg-[#404040] transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Collection
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={fetchCollections}
+            disabled={loading}
+            className="p-2 border border-[#E5E5E5] bg-white text-[#404040] rounded-md hover:bg-[#FAFAFA] transition-colors disabled:opacity-50"
+            title="Refresh collections"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button 
+            onClick={() => setSelectedCollection({ name: "", type: "Manual", status: "Published" })}
+            className="bg-[#0A0A0A] text-white px-4 py-2 rounded-md text-sm font-medium flex items-center hover:bg-[#404040] transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Collection
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -37,6 +93,8 @@ export default function CollectionsPage() {
           <input
             type="text"
             placeholder="Search collections..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border border-[#E5E5E5] rounded-md text-sm bg-white focus:outline-none focus:border-[#0A0A0A] transition-colors"
           />
         </div>
@@ -56,16 +114,38 @@ export default function CollectionsPage() {
         </div>
       </div>
 
-      {view === "grid" ? (
+      {loading ? (
+        // Skeleton grid
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockCollections.map((col) => (
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden h-60 animate-pulse">
+              <div className="h-40 bg-gray-200" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
+                <div className="h-3 bg-gray-200 rounded w-1/3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredCollections.length === 0 ? (
+        <div className="bg-white border border-[#E5E5E5] rounded-lg p-12 text-center text-[#737373]">
+          <Layers className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p className="text-sm">No collections found matching "{searchQuery}".</p>
+        </div>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCollections.map((col) => (
             <div 
               key={col.id} 
               className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden group hover:border-[#0A0A0A] transition-all cursor-pointer relative"
               onClick={() => setSelectedCollection(col)}
             >
               <div className="h-40 bg-[#F3F4F6] relative overflow-hidden">
-                {col.image && <img src={col.image} alt={col.name} className="w-full h-full object-cover" />}
+                {col.image ? (
+                  <img src={col.image} alt={col.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">No Image</div>
+                )}
                 <div className="absolute top-3 right-3 flex space-x-2">
                   <span className="bg-white/90 backdrop-blur text-xs px-2 py-1 rounded-md font-medium">
                     {col.productCount} products
@@ -110,10 +190,14 @@ export default function CollectionsPage() {
               </tr>
             </thead>
             <tbody>
-              {mockCollections.map((col) => (
+              {filteredCollections.map((col) => (
                 <tr key={col.id} className="border-b border-[#E5E5E5] hover:bg-[#FAFAFA] transition-colors cursor-pointer" onClick={() => setSelectedCollection(col)}>
                   <td className="px-6 py-4 font-medium flex items-center">
-                    {col.image && <img src={col.image} alt="" className="w-8 h-8 rounded object-cover mr-3" />}
+                    {col.image ? (
+                      <img src={col.image} alt="" className="w-8 h-8 rounded object-cover mr-3" />
+                    ) : (
+                      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-[10px] text-gray-400 mr-3">No Img</div>
+                    )}
                     {col.name}
                   </td>
                   <td className="px-6 py-4">
@@ -161,24 +245,30 @@ export default function CollectionsPage() {
               
               <div>
                 <label className="block text-sm font-medium text-[#404040] mb-2">Description</label>
-                <textarea rows={3} className="w-full px-3 py-2 border border-[#E5E5E5] rounded-md text-sm focus:outline-none focus:border-[#0A0A0A]"></textarea>
+                <textarea rows={3} defaultValue={selectedCollection.description} className="w-full px-3 py-2 border border-[#E5E5E5] rounded-md text-sm focus:outline-none focus:border-[#0A0A0A]"></textarea>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-[#404040] mb-2">Collection Image</label>
-                <div className="border-2 border-dashed border-[#E5E5E5] rounded-lg p-8 flex flex-col items-center justify-center text-[#737373] hover:bg-[#FAFAFA] cursor-pointer transition-colors">
-                  <div className="w-10 h-10 bg-[#F3F4F6] rounded-full flex items-center justify-center mb-2">
-                    <Plus className="w-5 h-5 text-[#404040]" />
+                {selectedCollection.image && selectedCollection.image !== 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80' ? (
+                  <div className="relative w-full h-40 rounded-lg overflow-hidden border border-[#E5E5E5] mb-2">
+                    <img src={selectedCollection.image} alt="" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-sm">Click or drag image to upload</span>
-                </div>
+                ) : (
+                  <div className="border-2 border-dashed border-[#E5E5E5] rounded-lg p-8 flex flex-col items-center justify-center text-[#737373] hover:bg-[#FAFAFA] cursor-pointer transition-colors">
+                    <div className="w-10 h-10 bg-[#F3F4F6] rounded-full flex items-center justify-center mb-2">
+                      <Plus className="w-5 h-5 text-[#404040]" />
+                    </div>
+                    <span className="text-sm">Click or drag image to upload</span>
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#404040] mb-2">Collection Type</label>
                 <div className="flex bg-[#F3F4F6] p-1 rounded-md">
-                  <button className="flex-1 bg-white shadow-sm text-sm font-medium py-1.5 rounded text-[#0A0A0A]">Manual</button>
-                  <button className="flex-1 text-[#737373] text-sm font-medium py-1.5 hover:text-[#0A0A0A]">Automated</button>
+                  <button className={`flex-1 text-sm font-medium py-1.5 rounded transition-all ${selectedCollection.type !== 'Smart' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[#737373] hover:text-[#0A0A0A]'}`}>Manual</button>
+                  <button className={`flex-1 text-sm font-medium py-1.5 rounded transition-all ${selectedCollection.type === 'Smart' ? 'bg-white shadow-sm text-[#0A0A0A]' : 'text-[#737373] hover:text-[#0A0A0A]'}`}>Automated</button>
                 </div>
               </div>
               
