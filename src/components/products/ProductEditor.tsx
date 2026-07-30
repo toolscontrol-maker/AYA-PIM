@@ -44,6 +44,7 @@ export function ProductEditor({ product }: { product: Product }) {
   const skuRef = useRef<HTMLInputElement>(null)
   const barcodeRef = useRef<HTMLInputElement>(null)
   const inventoryRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const activeImage = images[activeImageIdx]
 
@@ -58,17 +59,34 @@ export function ProductEditor({ product }: { product: Product }) {
     setVariants(prev => prev.map(v => v.id === variantId ? { ...v, [field]: value } : v))
   }
 
-  // Handle adding new image
-  const handleAddImage = async () => {
-    const imageUrl = window.prompt("Enter image URL to add:")
-    if (!imageUrl) return
+  // Handle adding new image from file explorer
+  const handleAddImage = () => {
+    fileInputRef.current?.click()
+  }
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    for (const file of files) {
+      await uploadImageFile(file)
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const uploadImageFile = async (file: File) => {
     startTransition(async () => {
       try {
-        const response = await fetch('/api/shopify/product/image', {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('productId', product.id)
+
+        const response = await fetch('/api/shopify/product/image/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: product.id, imageUrl })
+          body: formData
         })
 
         const result = await response.json()
@@ -78,26 +96,104 @@ export function ProductEditor({ product }: { product: Product }) {
 
         const newImage = {
           id: result.media?.[0]?.id || `img_${Date.now()}`,
-          src: imageUrl,
-          alt: product.title,
+          src: result.imageUrl,
+          alt: file.name.split('.')[0] || product.title,
           position: images.length + 1,
           width: 800,
           height: 1000
         }
+
         setImages(prev => [...prev, newImage])
         setActiveImageIdx(images.length)
 
         addNotification({
           type: 'success',
-          title: 'Image added successfully',
-          message: 'The image has been attached to the Shopify product.',
+          title: 'Image uploaded successfully',
+          message: `Attached ${file.name} to Shopify product.`,
+          duration: 3000
+        })
+      } catch (err: any) {
+         addNotification({
+           type: 'error',
+           title: 'Upload failed',
+           message: err.message || `Error uploading ${file.name}.`,
+           duration: 5000
+         })
+      }
+    })
+  }
+
+  // Handle reordering product images
+  const handleMoveImage = async (index: number, direction: 'left' | 'right') => {
+    if (direction === 'left' && index === 0) return
+    if (direction === 'right' && index === images.length - 1) return
+
+    const targetIndex = direction === 'left' ? index - 1 : index + 1
+    const updatedImages = [...images]
+    const temp = updatedImages[index]
+    updatedImages[index] = updatedImages[targetIndex]
+    updatedImages[targetIndex] = temp
+
+    const reordered = updatedImages.map((img, idx) => ({
+      ...img,
+      position: idx + 1
+    }))
+
+    setImages(reordered)
+    setActiveImageIdx(targetIndex)
+
+    try {
+      const moves = reordered.map((img, idx) => ({
+        id: img.id,
+        newPosition: idx + 1
+      }))
+
+      await fetch('/api/shopify/product/image/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, moves })
+      })
+    } catch (err) {
+      console.error('Failed to sync reorder in Shopify', err)
+    }
+  }
+
+  // Handle deleting image
+  const handleDeleteImage = async (mediaId: string) => {
+    if (!window.confirm("Are you sure you want to delete this image? This action cannot be undone.")) return
+
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/shopify/product/image/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: product.id, mediaId })
+        })
+
+        const result = await response.json()
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Failed to delete image')
+        }
+
+        const updatedImages = images.filter(img => img.id !== mediaId).map((img, idx) => ({
+          ...img,
+          position: idx + 1
+        }))
+
+        setImages(updatedImages)
+        setActiveImageIdx(0)
+
+        addNotification({
+          type: 'success',
+          title: 'Image deleted',
+          message: 'Successfully removed image from product gallery.',
           duration: 3000
         })
       } catch (err: any) {
         addNotification({
           type: 'error',
-          title: 'Failed to add image',
-          message: err.message || 'Connection error while saving the image.',
+          title: 'Delete failed',
+          message: err.message || 'Error deleting the image.',
           duration: 5000
         })
       }
@@ -198,6 +294,14 @@ export function ProductEditor({ product }: { product: Product }) {
             <button onClick={handleAddImage} className="p-1.5 text-[#404040] hover:text-[#0A0A0A] hover:bg-[#FAFAFA] rounded-md transition-colors" title="Upload">
               <ImagePlus className="w-4 h-4" />
             </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept="image/*" 
+              multiple 
+              onChange={handleFileSelect} 
+              className="hidden" 
+            />
             <button className="p-1.5 text-[#404040] hover:text-[#0A0A0A] hover:bg-[#FAFAFA] rounded-md transition-colors text-[#A855F7]" title="Enhance (AI)">
               <Sparkles className="w-4 h-4" />
             </button>
@@ -231,6 +335,33 @@ export function ProductEditor({ product }: { product: Product }) {
               </div>
             )}
           </div>
+
+          {activeImage && (
+            <div className="flex justify-between items-center gap-2 mb-4 bg-white border border-[#E5E5E5] p-2 rounded-md shadow-sm">
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => handleMoveImage(activeImageIdx, 'left')} 
+                  disabled={activeImageIdx === 0}
+                  className="px-2.5 py-1 border border-[#E5E5E5] hover:border-black rounded text-[11px] font-medium transition-colors disabled:opacity-30 disabled:hover:border-[#E5E5E5] bg-white flex items-center gap-1"
+                >
+                  ← Move Left
+                </button>
+                <button 
+                  onClick={() => handleMoveImage(activeImageIdx, 'right')} 
+                  disabled={activeImageIdx === images.length - 1}
+                  className="px-2.5 py-1 border border-[#E5E5E5] hover:border-black rounded text-[11px] font-medium transition-colors disabled:opacity-30 disabled:hover:border-[#E5E5E5] bg-white flex items-center gap-1"
+                >
+                  Move Right →
+                </button>
+              </div>
+              <button 
+                onClick={() => handleDeleteImage(activeImage.id)}
+                className="px-2.5 py-1 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded text-[11px] font-medium transition-colors bg-white"
+              >
+                Delete Image
+              </button>
+            </div>
+          )}
 
           {/* Thumbnails */}
           <div className="grid grid-cols-4 gap-3">
