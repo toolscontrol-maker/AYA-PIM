@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { shopifyFetch } from '@/lib/shopify/client'
 
+import { mockProducts } from '@/lib/mock/products'
+
 const GET_VARIANT_OPTIONS_QUERY = `
   query GetVariantOptions($id: ID!) {
     productVariant(id: $id) {
@@ -47,8 +49,26 @@ export async function POST(req: NextRequest) {
     const token = process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET_KEY
 
     if (!shop || !token) {
+      let updated = false
+      const rawId = variantId.split('/').pop()
+      for (const p of mockProducts) {
+        const variant = p.variants?.find((v: any) => v.id.split('/').pop() === rawId)
+        if (variant) {
+          variant.color = color
+          // Standardize variant option titles: Color / Size or Size / Color
+          const parts = variant.title.split(' / ')
+          if (parts.length > 1) {
+            // Check if parts[0] is the color (case match or similar)
+            variant.title = `${color} / ${parts[1]}`
+          } else {
+            variant.title = color
+          }
+          updated = true
+          break
+        }
+      }
       return NextResponse.json({
-        success: true,
+        success: updated,
         source: 'mock'
       })
     }

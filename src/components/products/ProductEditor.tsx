@@ -29,6 +29,56 @@ export function ProductEditor({ product }: { product: Product }) {
   const addNotification = useUIStore(s => s.addNotification)
   const router = useRouter()
 
+  const [editingSize, setEditingSize] = useState(false)
+  const [editingColor, setEditingColor] = useState(false)
+  const [sizeInput, setSizeInput] = useState('')
+  const [colorInput, setColorInput] = useState('')
+
+  const uniqueSizes = Array.from(new Set(variants.map(v => v.size || 'M').filter(Boolean)))
+  const uniqueColors = Array.from(new Set(variants.map(v => v.color || 'Noir').filter(Boolean)))
+
+  const startEditingSizes = () => {
+    setSizeInput(uniqueSizes.join(', '))
+    setEditingSize(true)
+  }
+
+  const startEditingColors = () => {
+    setColorInput(uniqueColors.join(', '))
+    setEditingColor(true)
+  }
+
+  const handleSaveSizes = () => {
+    setEditingSize(false)
+    const newSizes = sizeInput.split(',').map(s => s.trim()).filter(Boolean)
+    if (newSizes.length === 0) return
+
+    setVariants(prev => prev.map(v => {
+      const oldSizeIndex = uniqueSizes.indexOf(v.size)
+      const updatedSize = newSizes[oldSizeIndex] || newSizes[newSizes.length - 1] || v.size
+      return {
+        ...v,
+        size: updatedSize,
+        title: v.title.includes(' / ') ? `${v.title.split(' / ')[0]} / ${updatedSize}` : updatedSize
+      }
+    }))
+  }
+
+  const handleSaveColors = () => {
+    setEditingColor(false)
+    const newColors = colorInput.split(',').map(c => c.trim()).filter(Boolean)
+    if (newColors.length === 0) return
+
+    setVariants(prev => prev.map(v => {
+      const oldColorIndex = uniqueColors.indexOf(v.color)
+      const updatedColor = newColors[oldColorIndex] || newColors[newColors.length - 1] || v.color
+      return {
+        ...v,
+        color: updatedColor,
+        title: v.title.includes(' / ') ? `${updatedColor} / ${v.title.split(' / ')[1]}` : updatedColor
+      }
+    }))
+  }
+
   const tabs = [
     { id: 'general', label: 'General' },
     { id: 'seo', label: 'SEO' },
@@ -250,7 +300,9 @@ export function ProductEditor({ product }: { product: Product }) {
               price: v.price,
               compareAtPrice: v.compareAtPrice,
               sku: v.sku,
-              barcode: v.barcode
+              barcode: v.barcode,
+              size: v.size,
+              color: v.color
             })),
             seo: {
               title: seoTitle,
@@ -664,27 +716,61 @@ export function ProductEditor({ product }: { product: Product }) {
                 <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Product Options</h3>
                 
                 <div className="border border-[#E5E5E5] rounded-lg bg-white overflow-hidden">
-                  <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between">
+                  <div className="p-4 border-b border-[#E5E5E5] flex items-center justify-between min-h-[72px]">
                     <div>
                       <div className="text-[13px] font-medium">Size</div>
-                      <div className="flex gap-2 mt-2">
-                        {['XS', 'S', 'M', 'L', 'XL'].map(size => (
-                          <span key={size} className="px-2 py-1 bg-[#FAFAFA] border border-[#E5E5E5] rounded text-[12px]">{size}</span>
-                        ))}
-                      </div>
+                      {editingSize ? (
+                        <input 
+                          type="text"
+                          value={sizeInput}
+                          onChange={(e) => setSizeInput(e.target.value)}
+                          onBlur={handleSaveSizes}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveSizes()}
+                          className="mt-2 h-[32px] px-2 text-[12px] border border-[#0A0A0A] rounded bg-white w-80 focus:outline-none font-mono"
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {uniqueSizes.map(size => (
+                            <span key={size} className="px-2 py-1 bg-[#FAFAFA] border border-[#E5E5E5] rounded text-[12px] font-mono">{size}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button className="text-[12px] text-[#737373] hover:text-[#0A0A0A]">Edit</button>
+                    <button 
+                      onClick={startEditingSizes}
+                      className="text-[12px] text-[#737373] hover:text-[#0A0A0A] hover:underline font-medium"
+                    >
+                      {editingSize ? 'Save' : 'Edit'}
+                    </button>
                   </div>
-                  <div className="p-4 flex items-center justify-between">
+                  <div className="p-4 flex items-center justify-between min-h-[72px]">
                     <div>
                       <div className="text-[13px] font-medium">Color</div>
-                      <div className="flex gap-2 mt-2">
-                        {['Onyx Black', 'Stone'].map(color => (
-                          <span key={color} className="px-2 py-1 bg-[#FAFAFA] border border-[#E5E5E5] rounded text-[12px]">{color}</span>
-                        ))}
-                      </div>
+                      {editingColor ? (
+                        <input 
+                          type="text"
+                          value={colorInput}
+                          onChange={(e) => setColorInput(e.target.value)}
+                          onBlur={handleSaveColors}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveColors()}
+                          className="mt-2 h-[32px] px-2 text-[12px] border border-[#0A0A0A] rounded bg-white w-80 focus:outline-none font-mono"
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {uniqueColors.map(color => (
+                            <span key={color} className="px-2 py-1 bg-[#FAFAFA] border border-[#E5E5E5] rounded text-[12px] font-mono">{color}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button className="text-[12px] text-[#737373] hover:text-[#0A0A0A]">Edit</button>
+                    <button 
+                      onClick={startEditingColors}
+                      className="text-[12px] text-[#737373] hover:text-[#0A0A0A] hover:underline font-medium"
+                    >
+                      {editingColor ? 'Save' : 'Edit'}
+                    </button>
                   </div>
                 </div>
                 
