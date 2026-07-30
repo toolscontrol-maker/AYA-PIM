@@ -94,20 +94,6 @@ export function ProductTableView() {
     fetchProducts()
   }, [])
 
-  // Sync selection to Zustand store
-  useEffect(() => {
-    const selectedIds = Object.keys(rowSelection)
-      .filter(k => rowSelection[k])
-      .map(idx => data[Number(idx)]?.id)
-      .filter(Boolean)
-
-    if (selectedIds.length > 0) {
-      selectAllProducts(selectedIds)
-    } else {
-      clearSelection()
-    }
-  }, [rowSelection, data, selectAllProducts, clearSelection])
-
   const handleSave = useCallback((id: string, field: keyof TableProduct, value: any) => {
     setData(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p))
   }, [])
@@ -243,6 +229,16 @@ export function ProductTableView() {
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   })
+
+  // Sync selection to Zustand store
+  useEffect(() => {
+    const selectedIds = table.getSelectedRowModel().flatRows.map(row => row.original.id)
+    if (selectedIds.length > 0) {
+      selectAllProducts(selectedIds)
+    } else {
+      clearSelection()
+    }
+  }, [rowSelection, data, selectAllProducts, clearSelection])
 
   const tableContainerRef = useRef<HTMLDivElement>(null)
   const { rows } = table.getRowModel()

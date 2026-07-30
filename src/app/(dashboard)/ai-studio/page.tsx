@@ -173,15 +173,25 @@ export default function AIStudioPage() {
           }
         })
 
-        const updatePromises = Object.values(productUpdatesMap).map(update => 
-          fetch('/api/shopify/product/update', {
+        const results = []
+        const updates = Object.values(productUpdatesMap)
+        
+        for (let i = 0; i < updates.length; i++) {
+          const update = updates[i]
+          
+          // Throttle: wait 250ms between updates to protect Shopify's API leaky bucket rate limit
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 250))
+          }
+          
+          const res = await fetch('/api/shopify/product/update', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(update)
           })
-        )
+          results.push(res)
+        }
 
-        const results = await Promise.all(updatePromises)
         const failed = results.filter(r => !r.ok)
 
         if (failed.length > 0) {
