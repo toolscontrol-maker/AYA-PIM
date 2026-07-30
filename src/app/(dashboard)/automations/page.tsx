@@ -90,7 +90,7 @@ export default function AutomationsPage() {
                   <option>Equals</option>
                   <option>Contains</option>
                 </select>
-                <input type="text" value="Leggings" className="flex-1 border border-[#E5E5E5] rounded px-2 py-1.5 text-sm bg-[#FAFAFA]" />
+                <input type="text" defaultValue="Leggings" className="flex-1 border border-[#E5E5E5] rounded px-2 py-1.5 text-sm bg-[#FAFAFA]" />
               </div>
               <button className="text-xs text-[#737373] hover:text-[#0A0A0A] font-medium">+ Add AND condition</button>
             </div>
