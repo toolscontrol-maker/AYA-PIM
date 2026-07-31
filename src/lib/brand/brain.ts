@@ -6,14 +6,16 @@ export interface AYAColor {
 }
 
 export const COLOR_LIBRARY: AYAColor[] = [
-  { displayName: 'Black', luxuryName: 'Noir', hex: '#0F0F0F', slug: 'noir' },
-  { displayName: 'White', luxuryName: 'Ivory', hex: '#FDFBF7', slug: 'ivory' },
-  { displayName: 'Beige', luxuryName: 'Stone', hex: '#8B8580', slug: 'stone' },
+  { displayName: 'Black', luxuryName: 'Black', hex: '#0A0A0A', slug: 'black' },
+  { displayName: 'White', luxuryName: 'White', hex: '#FDFBF7', slug: 'white' },
   { displayName: 'Grey', luxuryName: 'Slate', hex: '#475569', slug: 'slate' },
   { displayName: 'Green', luxuryName: 'Forest', hex: '#2D3A2E', slug: 'forest' },
-  { displayName: 'Brown', luxuryName: 'Clay', hex: '#B87D68', slug: 'clay' },
-  { displayName: 'Cream', luxuryName: 'Sand', hex: '#D5C5B5', slug: 'sand' },
+  { displayName: 'Plum', luxuryName: 'Plum', hex: '#5C2D50', slug: 'plum' },
+  { displayName: 'Sand', luxuryName: 'Sand', hex: '#D5C5B5', slug: 'sand' },
+  { displayName: 'Olive', luxuryName: 'Olive', hex: '#556B2F', slug: 'olive' },
   { displayName: 'Sage', luxuryName: 'Sage', hex: '#9CAF88', slug: 'sage' },
+  { displayName: 'Chocolate', luxuryName: 'Chocolate', hex: '#5C3A21', slug: 'chocolate' },
+  { displayName: 'Navy', luxuryName: 'Navy', hex: '#1E3A8A', slug: 'navy' },
 ];
 
 export const TAXONOMY = {
@@ -112,9 +114,12 @@ export interface ClassificationResult {
   activities: string[];
   naming: {
     gender: string;
-    subcategory: string;
-    fit: string;
-    category: string;
+    collection?: string;
+    rise?: string;
+    fit?: string;
+    length?: string;
+    materialFeature?: string;
+    productType: string;
   };
   seo: {
     title: string;
@@ -251,13 +256,64 @@ export function classifyProduct(title: string, description: string = ''): Classi
   if (normTitle.includes('travel') || normDesc.includes('travel')) activities.push('Travel');
   if (normTitle.includes('life') || normDesc.includes('lifestyle')) activities.push('Lifestyle');
 
-  // 7. Naming Rules Analysis
-  const fit = normTitle.includes('high rise') || normTitle.includes('high-rise') ? 'High Rise' : 'Regular';
+  // 7. Naming Rules Analysis - AYA Naming Standard
+  // Template: The + Gender + Collection (Optional) + Rise + Fit + Length + Material / Feature + Product Type + in + Color
+
+  let rise = '';
+  if (normTitle.includes('high rise') || normTitle.includes('high-rise') || normDesc.includes('high rise')) {
+    rise = 'High Rise';
+  }
+
+  let fitValue = '';
+  if (normTitle.includes('relaxed') || normDesc.includes('relaxed')) {
+    fitValue = 'Relaxed';
+  } else if (normTitle.includes('oversized') || normDesc.includes('oversized')) {
+    fitValue = 'Oversized';
+  } else if (normTitle.includes('regular fit') || normTitle.includes('regular-fit')) {
+    fitValue = 'Regular Fit';
+  } else if (normTitle.includes('slim fit') || normTitle.includes('slim-fit')) {
+    fitValue = 'Slim Fit';
+  }
+
+  let length = '';
+  if (normTitle.includes('full length') || normTitle.includes('full-length')) {
+    length = 'Full Length';
+  } else if (normTitle.includes('cropped') || normTitle.includes('crop')) {
+    length = 'Cropped';
+  } else if (normTitle.includes('7/8')) {
+    length = '7/8 Length';
+  }
+
+  let materialFeature = '';
+  if (normTitle.includes('performance') || normDesc.includes('performance')) {
+    materialFeature = 'Performance';
+  } else if (normTitle.includes('sculpt') || normDesc.includes('sculpt')) {
+    materialFeature = 'Sculpt';
+  } else if (normTitle.includes('rib') || normTitle.includes('ribbed') || normDesc.includes('rib')) {
+    materialFeature = 'Rib';
+  } else if (normTitle.includes('heavyweight') || normDesc.includes('heavyweight')) {
+    materialFeature = 'Heavyweight';
+  } else if (normTitle.includes('lightweight') || normDesc.includes('lightweight')) {
+    materialFeature = 'Lightweight';
+  } else if (normTitle.includes('seamless') || normDesc.includes('seamless')) {
+    materialFeature = 'Seamless';
+  }
+
+  let collection = '';
+  if (normTitle.includes('core') || normDesc.includes('core')) {
+    collection = 'Core';
+  } else if (normTitle.includes('limited') || normDesc.includes('limited')) {
+    collection = 'Limited Edition';
+  }
+
   const naming = {
-    gender: gender === 'Woman' ? 'Women\'s' : gender === 'Man' ? 'Men\'s' : 'Unisex',
-    subcategory: shopifyProductType,
-    fit: fit,
-    category: mainCategory
+    gender: gender === 'Woman' ? "Women's" : gender === 'Man' ? "Men's" : 'Unisex',
+    collection: collection || undefined,
+    rise: rise || undefined,
+    fit: fitValue || undefined,
+    length: length || undefined,
+    materialFeature: materialFeature || undefined,
+    productType: shopifyProductType
   };
 
   // 8. SEO Generator (Luxury / Minimal Tone)
@@ -280,13 +336,13 @@ export function classifyProduct(title: string, description: string = ''): Classi
     'core',
   ];
   activities.forEach(a => baseTags.push(a.toLowerCase()));
-  if (fit !== 'Regular') baseTags.push('high-rise');
+  if (rise) baseTags.push('high-rise');
   const tags = Array.from(new Set(baseTags));
 
   // 10. Metafield Engine
   const metafields: Record<string, string> = {};
   if (subcategory === 'LEGGINGS') {
-    metafields['Rise'] = fit;
+    metafields['Rise'] = rise || 'Regular';
     metafields['Compression'] = normTitle.includes('compression') || normDesc.includes('compression') ? 'High' : 'Medium';
     metafields['Length'] = normTitle.includes('7/8') ? '7/8 Length' : 'Full Length';
     metafields['Pocket'] = normTitle.includes('pocket') || normDesc.includes('pocket') ? 'Yes' : 'No';
@@ -339,4 +395,29 @@ export function addBrainRule(rule: Omit<BrainRule, 'id'>) {
 // Function to remove rule
 export function removeBrainRule(id: string) {
   brainRules = brainRules.filter(r => r.id !== id);
+}
+
+export function constructStandardTitle(naming: {
+  gender: string;
+  collection?: string;
+  rise?: string;
+  fit?: string;
+  length?: string;
+  materialFeature?: string;
+  productType: string;
+}, colorName: string): string {
+  const parts = [
+    'The',
+    naming.gender,
+    naming.collection || '',
+    naming.rise || '',
+    naming.fit || '',
+    naming.length || '',
+    naming.materialFeature || '',
+    naming.productType,
+    'in',
+    colorName
+  ];
+
+  return parts.filter(Boolean).join(' ');
 }

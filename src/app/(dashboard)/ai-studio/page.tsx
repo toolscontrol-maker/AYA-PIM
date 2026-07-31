@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/ui.store'
 import { cn } from '@/lib/utils'
-import { classifyProduct, type ClassificationResult, COLOR_LIBRARY } from '@/lib/brand/brain'
+import { classifyProduct, type ClassificationResult, COLOR_LIBRARY, constructStandardTitle } from '@/lib/brand/brain'
 import Link from 'next/link'
 
 type ActionState = 'idle' | 'running' | 'completed'
@@ -121,7 +121,7 @@ export default function AIStudioPage() {
             )
             const luxuryColorName = matchCol ? matchCol.luxuryName : rawColor
 
-            const reconstructedTitle = `${brain.gender === 'Woman' ? "Women's" : "Men's"} ${brain.naming.fit} ${brain.naming.subcategory} in ${luxuryColorName}`
+            const reconstructedTitle = constructStandardTitle(brain.naming, luxuryColorName)
             generatedDiffs.push({
               productId: p.id,
               productTitle: p.title,
