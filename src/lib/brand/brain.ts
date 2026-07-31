@@ -137,7 +137,24 @@ export interface ClassificationResult {
 }
 
 export function classifyProduct(title: string, description: string = ''): ClassificationResult {
-  const normTitle = title.toLowerCase();
+  // Pre-process title: if it ends with " in [ColorName]", strip it to get the clean Base Product Name
+  let baseTitle = title.trim();
+  let detectedColorName = '';
+
+  const inColorMatch = title.match(/\s+in\s+([a-zA-Z\s]+)$/i);
+  if (inColorMatch) {
+    const possibleColor = inColorMatch[1].trim();
+    const colorMatch = COLOR_LIBRARY.find(
+      c => c.displayName.toLowerCase() === possibleColor.toLowerCase() ||
+           c.luxuryName.toLowerCase() === possibleColor.toLowerCase()
+    );
+    if (colorMatch) {
+      baseTitle = title.substring(0, inColorMatch.index).trim();
+      detectedColorName = colorMatch.luxuryName;
+    }
+  }
+
+  const normTitle = baseTitle.toLowerCase();
   const normDesc = description.toLowerCase();
   let confidence = 100;
 
@@ -234,16 +251,26 @@ export function classifyProduct(title: string, description: string = ''): Classi
   else if (mainCategory === 'Accessory') shopifyCategory = 'Sporting Goods > Athletics > Yoga & Pilates';
 
   // 5. Controlled Color Library Identification
-  let matchedColor = COLOR_LIBRARY[3]; // Default to Slate
+  let matchedColor = COLOR_LIBRARY[0]; // Default to Black
   let colorMatched = false;
-  
-  for (const col of COLOR_LIBRARY) {
-    const colName = col.displayName.toLowerCase();
-    const luxName = col.luxuryName.toLowerCase();
-    if (normTitle.includes(colName) || normTitle.includes(luxName) || normDesc.includes(colName) || normDesc.includes(luxName)) {
-      matchedColor = col;
+
+  if (detectedColorName) {
+    const match = COLOR_LIBRARY.find(c => c.luxuryName.toLowerCase() === detectedColorName.toLowerCase());
+    if (match) {
+      matchedColor = match;
       colorMatched = true;
-      break;
+    }
+  }
+
+  if (!colorMatched) {
+    for (const col of COLOR_LIBRARY) {
+      const colName = col.displayName.toLowerCase();
+      const luxName = col.luxuryName.toLowerCase();
+      if (normTitle.includes(colName) || normTitle.includes(luxName) || normDesc.includes(colName) || normDesc.includes(luxName)) {
+        matchedColor = col;
+        colorMatched = true;
+        break;
+      }
     }
   }
   

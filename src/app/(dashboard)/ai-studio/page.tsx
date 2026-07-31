@@ -112,8 +112,7 @@ export default function AIStudioPage() {
           }
 
           if (actionName === 'Rename Products' || actionName === 'Organize all products') {
-            const productColors = Array.from(new Set(p.variants?.map((v: any) => v.color).filter(Boolean) as string[]))
-            const rawColor = productColors[0] || p.color || 'Noir'
+            const rawColor = p.variants?.[0]?.color || p.color || 'Black'
             
             const matchCol = COLOR_LIBRARY.find(
               c => c.displayName.toLowerCase() === rawColor.toLowerCase() ||
@@ -133,8 +132,7 @@ export default function AIStudioPage() {
           }
 
           if (actionName === 'Optimize Color Names' || actionName === 'Organize all products') {
-            const productColors = Array.from(new Set(p.variants?.map((v: any) => v.color).filter(Boolean) as string[]))
-            const rawColor = productColors[0] || p.color || 'Noir'
+            const rawColor = p.variants?.[0]?.color || p.color || 'Black'
 
             const matchCol = COLOR_LIBRARY.find(
               c => c.displayName.toLowerCase() === rawColor.toLowerCase() ||
