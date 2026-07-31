@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useUIStore } from '@/lib/store/ui.store'
 import { cn } from '@/lib/utils'
-import { classifyProduct, type ClassificationResult } from '@/lib/brand/brain'
+import { classifyProduct, type ClassificationResult, COLOR_LIBRARY } from '@/lib/brand/brain'
 import Link from 'next/link'
 
 type ActionState = 'idle' | 'running' | 'completed'
@@ -112,7 +112,16 @@ export default function AIStudioPage() {
           }
 
           if (actionName === 'Rename Products' || actionName === 'Organize all products') {
-            const reconstructedTitle = `${brain.gender === 'Woman' ? "Women's" : "Men's"} ${brain.naming.fit} ${brain.naming.subcategory} in ${brain.color.luxuryName}`
+            const productColors = Array.from(new Set(p.variants?.map((v: any) => v.color).filter(Boolean) as string[]))
+            const rawColor = productColors[0] || p.color || 'Noir'
+            
+            const matchCol = COLOR_LIBRARY.find(
+              c => c.displayName.toLowerCase() === rawColor.toLowerCase() ||
+                   c.luxuryName.toLowerCase() === rawColor.toLowerCase()
+            )
+            const luxuryColorName = matchCol ? matchCol.luxuryName : rawColor
+
+            const reconstructedTitle = `${brain.gender === 'Woman' ? "Women's" : "Men's"} ${brain.naming.fit} ${brain.naming.subcategory} in ${luxuryColorName}`
             generatedDiffs.push({
               productId: p.id,
               productTitle: p.title,
@@ -124,13 +133,22 @@ export default function AIStudioPage() {
           }
 
           if (actionName === 'Optimize Color Names' || actionName === 'Organize all products') {
+            const productColors = Array.from(new Set(p.variants?.map((v: any) => v.color).filter(Boolean) as string[]))
+            const rawColor = productColors[0] || p.color || 'Noir'
+
+            const matchCol = COLOR_LIBRARY.find(
+              c => c.displayName.toLowerCase() === rawColor.toLowerCase() ||
+                   c.luxuryName.toLowerCase() === rawColor.toLowerCase()
+            )
+            const luxuryColorName = matchCol ? matchCol.luxuryName : rawColor
+
             generatedDiffs.push({
               productId: p.id,
               productTitle: p.title,
               field: 'Luxury Color Name',
               oldValue: p.color || 'Basic Color',
-              newValue: brain.color.luxuryName,
-              rawProposedProduct: { ...p, color: brain.color.luxuryName }
+              newValue: luxuryColorName,
+              rawProposedProduct: { ...p, color: luxuryColorName }
             })
           }
 

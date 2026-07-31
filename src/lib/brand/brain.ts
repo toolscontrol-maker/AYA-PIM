@@ -265,8 +265,8 @@ export function classifyProduct(title: string, description: string = ''): Classi
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '');
 
-  const seoTitle = `AYA | ${title} | Luxury Activewear`;
-  const seoDescription = `${title}. Engineered for movement, designed for life. Crafted from our signature luxury fabric with a minimal, refined silhouette. Perfect for ${activities.join(' and ')}.`;
+  const seoTitle = `AYA | ${title}`;
+  const seoDescription = `${title}. Engineered for movement, designed for life. Crafted from our signature refined fabric with a minimal, elegant silhouette. Perfect for ${activities.join(' and ')}.`;
   const imageALT = `${title} in AYA ${matchedColor.luxuryName}`;
 
   // 9. Tag Engine
@@ -277,7 +277,6 @@ export function classifyProduct(title: string, description: string = ''): Classi
     matchedColor.slug,
     'activewear',
     'premium',
-    'luxury',
     'core',
   ];
   activities.forEach(a => baseTags.push(a.toLowerCase()));
