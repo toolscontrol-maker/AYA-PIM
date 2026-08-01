@@ -1,9 +1,10 @@
 'use client'
 
-import { Package, Fingerprint, Sparkles, FileText, BarChart2, Layers, Zap, BookOpen, Bell } from 'lucide-react'
+import { Package, Fingerprint, Sparkles, FileText, BarChart2, Layers, Zap, BookOpen, Bell, Menu } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { useUIStore } from '@/lib/store/ui.store'
 
 const MODULES = [
   { id: 'pim', label: 'PIM', icon: Package, href: '/products', description: 'Product Information', basePaths: ['/products', '/collections', '/categories', '/tags', '/metafields', '/images', '/bulk', '/templates', '/import'] },
@@ -19,16 +20,23 @@ const MODULES = [
 export function ModuleSwitcher() {
   const pathname = usePathname()
   const router = useRouter()
+  const toggleSidebar = useUIStore(s => s.toggleSidebar)
 
   const isActive = (module: typeof MODULES[0]) => {
     return module.basePaths.some(path => pathname.startsWith(path))
   }
 
   return (
-    <div className="flex items-center h-[44px] border-b border-[#E5E5E5] bg-white px-4 shrink-0">
-      <div className="flex items-center w-[204px] shrink-0 pr-4">
-        <span className="font-bold tracking-tight text-sm mr-2 text-[#0A0A0A]">AYA</span>
-        <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Synced" />
+    <div className="flex items-center h-[44px] border-b border-[#E5E5E5] bg-white px-4 shrink-0 justify-between md:justify-start aya-pattern">
+      <div className="flex items-center md:w-[204px] shrink-0 pr-4 gap-2">
+        <button 
+          onClick={toggleSidebar} 
+          className="md:hidden p-1 hover:bg-[#FAFAFA] rounded text-[#404040]"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+        <span className="font-serif tracking-[0.25em] text-sm font-bold text-[#0A0A0A] select-none">A Y A</span>
+        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Synced" />
       </div>
 
       <div className="flex items-center flex-1 overflow-x-auto no-scrollbar gap-2">

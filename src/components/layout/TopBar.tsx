@@ -29,7 +29,8 @@ export function TopBar() {
 
   return (
     <div className="flex items-center justify-between h-10 px-4 bg-white border-b border-[#E5E5E5] shrink-0">
-      <div className="flex items-center gap-3">
+      {/* Breadcrumbs - hidden on mobile to give space */}
+      <div className="hidden md:flex items-center gap-3">
         <div className="flex items-center text-[13px]">
           <span className="text-[#737373]">{moduleName}</span>
           <span className="mx-2 text-[#E5E5E5]">/</span>
@@ -40,7 +41,8 @@ export function TopBar() {
         </div>
       </div>
 
-      <div className="flex-1 max-w-md px-8 relative flex items-center justify-center">
+      {/* Center Search Input */}
+      <div className="flex-1 max-w-md px-2 sm:px-8 relative flex items-center justify-center">
         <div className={cn(
           "flex items-center w-full max-w-xs h-7 rounded px-2 transition-colors",
           searchFocused ? "bg-white border border-[#E5E5E5] shadow-sm" : "bg-transparent border border-transparent hover:bg-[#FAFAFA]"
@@ -49,7 +51,7 @@ export function TopBar() {
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search products... (⌘F)"
+            placeholder="Search... (⌘F)"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             onFocus={() => setSearchFocused(true)}
@@ -64,8 +66,9 @@ export function TopBar() {
         </div>
       </div>
 
+      {/* Action Buttons */}
       <div className="flex items-center gap-1">
-        <button className="flex items-center gap-1.5 h-7 px-2.5 rounded text-[13px] font-medium text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A] transition-colors">
+        <button className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded text-[13px] font-medium text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A] transition-colors">
           <Clock className="w-3.5 h-3.5" />
           <span>Recent</span>
           <ChevronDown className="w-3.5 h-3.5 opacity-50" />
@@ -74,15 +77,15 @@ export function TopBar() {
           <Filter className="w-3.5 h-3.5" />
           <span>Filter</span>
         </button>
-        <div className="w-px h-4 bg-[#E5E5E5] mx-1" />
-        <button disabled className="w-7 h-7 flex items-center justify-center rounded text-[#737373] opacity-50 cursor-not-allowed">
+        <div className="hidden sm:block w-px h-4 bg-[#E5E5E5] mx-1" />
+        <button disabled className="hidden sm:flex w-7 h-7 items-center justify-center rounded text-[#737373] opacity-50 cursor-not-allowed">
           <Undo className="w-3.5 h-3.5" />
         </button>
-        <button className="w-7 h-7 flex items-center justify-center rounded text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A] transition-colors">
+        <button className="hidden sm:flex w-7 h-7 items-center justify-center rounded text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A] transition-colors">
           <Redo className="w-3.5 h-3.5" />
         </button>
-        <div className="w-px h-4 bg-[#E5E5E5] mx-1" />
-        <div className="flex bg-[#FAFAFA] border border-[#E5E5E5] rounded p-0.5">
+        <div className="hidden sm:block w-px h-4 bg-[#E5E5E5] mx-1" />
+        <div className="hidden sm:flex bg-[#FAFAFA] border border-[#E5E5E5] rounded p-0.5">
           <button className="w-6 h-6 flex items-center justify-center rounded bg-white shadow-sm text-[#0A0A0A]">
             <List className="w-3.5 h-3.5" />
           </button>

@@ -84,4 +84,23 @@ export const PRODUCT_VARIANTS_BULK_UPDATE_MUTATION = `
   }
 `
 
+export const PRODUCT_CREATE_MUTATION = `
+  mutation productCreate($input: ProductCreateInput!) {
+    productCreate(input: $input) {
+      product {
+        id
+        title
+        handle
+        status
+        vendor
+        productType
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`
+
 

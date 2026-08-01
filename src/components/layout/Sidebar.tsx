@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUIStore } from '@/lib/store/ui.store'
+import { useEffect } from 'react'
 import { 
   LayoutDashboard, Package, FolderTree, Tag, Hash, Image as ImageIcon, CheckSquare, 
   Copy, Download, Fingerprint, Type, Search, FileText, Palette, Box, Sparkles, 
@@ -163,6 +164,14 @@ const NAVIGATION: Record<string, NavSection[]> = {
 export function Sidebar() {
   const pathname = usePathname()
   const sidebarCollapsed = useUIStore(s => s.sidebarCollapsed)
+  const toggleSidebar = useUIStore(s => s.toggleSidebar)
+
+  useEffect(() => {
+    // Collapse sidebar by default on mobile screens on mount
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && !sidebarCollapsed) {
+      toggleSidebar()
+    }
+  }, [])
 
   // Determine active module based on first segment of pathname
   const activeModuleKey = Object.keys(NAVIGATION).find(key => {
@@ -176,40 +185,59 @@ export function Sidebar() {
   const activeNav = NAVIGATION[activeModuleKey] || NAVIGATION.pim
 
   return (
-    <motion.div
-      initial={false}
-      animate={{ width: sidebarCollapsed ? 0 : 220 }}
-      transition={{ duration: 0.2, ease: 'easeInOut' }}
-      className="h-full bg-white border-r border-[#E5E5E5] overflow-y-auto overflow-x-hidden flex flex-col shrink-0"
-    >
-      <div className="w-[220px] p-3 flex flex-col gap-6">
-        {activeNav.map((section, idx) => (
-          <div key={idx} className="flex flex-col gap-1">
-            <h3 className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#737373] mb-1">
-              {section.title}
-            </h3>
-            {section.items.map((item) => {
-              const active = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/products' && item.href !== '/brand' && item.href !== '/ai-studio' && item.href !== '/content' && item.href !== '/analytics' && item.href !== '/assets' && item.href !== '/automations' && item.href !== '/library')
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2.5 px-2 h-8 rounded-md transition-colors text-[13px]",
-                    active
-                      ? "bg-[#F5F5F5] text-[#0A0A0A] font-medium"
-                      : "text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A]"
-                  )}
-                >
-                  <Icon className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-        ))}
-      </div>
-    </motion.div>
+    <>
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {!sidebarCollapsed && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/45 z-30 transition-opacity"
+          onClick={toggleSidebar}
+        />
+      )}
+      
+      <motion.div
+        initial={false}
+        animate={{ width: sidebarCollapsed ? 0 : 220 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+        className={cn(
+          "h-full bg-white border-r border-[#E5E5E5] overflow-y-auto overflow-x-hidden flex flex-col shrink-0 md:relative fixed left-0 top-[44px] md:top-0 bottom-0 z-40 shadow-xl md:shadow-none aya-pattern",
+          sidebarCollapsed ? "pointer-events-none border-r-0" : ""
+        )}
+      >
+        <div className="w-[220px] p-3 flex flex-col gap-6">
+          {activeNav.map((section, idx) => (
+            <div key={idx} className="flex flex-col gap-1">
+              <h3 className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#737373] mb-1">
+                {section.title}
+              </h3>
+              {section.items.map((item) => {
+                const active = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/products' && item.href !== '/brand' && item.href !== '/ai-studio' && item.href !== '/content' && item.href !== '/analytics' && item.href !== '/assets' && item.href !== '/automations' && item.href !== '/library')
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => {
+                      // Auto collapse sidebar on mobile when navigating
+                      if (window.innerWidth < 768) {
+                        toggleSidebar()
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-2.5 px-2 h-8 rounded-md transition-colors text-[13px]",
+                      active
+                        ? "bg-[#F5F5F5] text-[#0A0A0A] font-medium"
+                        : "text-[#404040] hover:bg-[#FAFAFA] hover:text-[#0A0A0A]"
+                    )}
+                  >
+                    <Icon className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </>
   )
 }

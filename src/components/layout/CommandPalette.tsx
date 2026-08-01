@@ -13,6 +13,7 @@ export function CommandPalette() {
   const router = useRouter()
   const commandPaletteOpen = useUIStore(s => s.commandPaletteOpen)
   const closeCommandPalette = useUIStore(s => s.closeCommandPalette)
+  const openNewProductModal = useUIStore(s => s.openNewProductModal)
   const [open, setOpen] = useState(false)
 
   // Sync internal state with store
@@ -118,7 +119,7 @@ export function CommandPalette() {
           <Command.Separator className="h-px bg-[#E5E5E5] my-1" />
 
           <Command.Group heading="Actions" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-[#737373]">
-            <Command.Item onSelect={() => runCommand(() => {})} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm text-[#404040] aria-selected:bg-[#FAFAFA] aria-selected:text-[#0A0A0A]">
+            <Command.Item onSelect={() => runCommand(() => openNewProductModal())} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm text-[#404040] aria-selected:bg-[#FAFAFA] aria-selected:text-[#0A0A0A]">
               <Plus className="h-4 w-4" />
               <span>New Product</span>
               <div className="ml-auto flex items-center gap-1">

@@ -3,7 +3,7 @@
 import React, { useState, useTransition, useRef } from 'react'
 import { 
   ArrowLeft, ImagePlus, Sparkles, ZoomIn, Eraser, 
-  CheckCircle2, LayoutGrid, RefreshCw
+  CheckCircle2, LayoutGrid, RefreshCw, Lock, Unlock, AlertTriangle, Link2
 } from 'lucide-react'
 import { SEOPreview } from './SEOPreview'
 import { cn } from '@/lib/utils'
@@ -12,11 +12,36 @@ import { type Product } from '@/lib/mock/products'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { classifyProduct } from '@/lib/brand/brain'
+import { 
+  ProductIdentityAttributes,
+  parseAttributesFromProduct,
+  generateBaseProductName,
+  generateFullProductTitle,
+  generateHandle,
+  generateSKUPrefix,
+  generateCanonicalURL,
+  GENDER_OPTIONS,
+  PRODUCT_TYPE_OPTIONS,
+  RISE_OPTIONS,
+  FIT_OPTIONS,
+  LENGTH_OPTIONS,
+  SUPPORT_OPTIONS,
+  COVERAGE_OPTIONS,
+  MATERIAL_OPTIONS,
+  PERFORMANCE_OPTIONS,
+  CONSTRUCTION_OPTIONS,
+  COLOR_OPTIONS
+} from '@/lib/productIdentity'
 
 export function ProductEditor({ product }: { product: Product }) {
   const [activeTab, setActiveTab] = useState('general')
   const [images, setImages] = useState(product?.images || [])
   const [activeImageIdx, setActiveImageIdx] = useState(0)
+
+  // AYA Product Identity Engine state
+  const [identityAttrs, setIdentityAttrs] = useState<ProductIdentityAttributes>(() => parseAttributesFromProduct(product))
+  const [customHandle, setCustomHandle] = useState(product?.handle || product?.seo?.handle || '')
+  const [handleLocked, setHandleLocked] = useState(true)
   
   // State for products and variants to make it fully reactive
   const [price, setPrice] = useState(product?.price || 0)
@@ -81,10 +106,18 @@ export function ProductEditor({ product }: { product: Product }) {
 
   const tabs = [
     { id: 'general', label: 'General' },
+    { id: 'identity', label: 'Identity' },
     { id: 'seo', label: 'SEO' },
     { id: 'shopify', label: 'Shopify' },
     { id: 'options', label: 'Options' }
   ]
+
+  // AYA Product Identity Engine computed outputs
+  const computedBaseName = generateBaseProductName(identityAttrs)
+  const computedFullTitle = generateFullProductTitle(identityAttrs)
+  const computedHandle = generateHandle(identityAttrs)
+  const computedSkuPrefix = generateSKUPrefix(identityAttrs)
+  const computedCanonical = generateCanonicalURL(customHandle)
 
   // Form refs
   const titleRef = useRef<HTMLInputElement>(null)
@@ -277,7 +310,7 @@ export function ProductEditor({ product }: { product: Product }) {
 
   // Handle saving changes
   const handleSaveChanges = () => {
-    const title = titleRef.current?.value || product.title
+    const title = computedFullTitle || titleRef.current?.value || product.title
     const vendor = vendorRef.current?.value || product.vendor
     const status = statusRef.current?.value || product.status
     const category = categoryRef.current?.value || product.category
@@ -291,6 +324,7 @@ export function ProductEditor({ product }: { product: Product }) {
           body: JSON.stringify({
             id: product.id,
             title,
+            handle: customHandle,
             vendor,
             status,
             category,
@@ -335,9 +369,9 @@ export function ProductEditor({ product }: { product: Product }) {
   }
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden text-[#0A0A0A] font-sans">
+    <div className="flex flex-col md:flex-row h-screen overflow-y-auto md:overflow-hidden bg-[#FAFAFA] text-[#0A0A0A] font-sans">
       {/* Left Panel - Images */}
-      <div className="w-[40%] flex flex-col border-r border-[#E5E5E5] bg-white">
+      <div className="w-full md:w-[40%] flex flex-col border-b md:border-b-0 md:border-r border-[#E5E5E5] bg-white shrink-0 md:h-full">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5]">
           <h2 className="text-sm font-medium flex items-center gap-2">
             Media <span className="text-[#737373] text-xs px-1.5 py-0.5 bg-[#FAFAFA] rounded-md border border-[#E5E5E5]">{images.length}</span>
@@ -441,7 +475,7 @@ export function ProductEditor({ product }: { product: Product }) {
       </div>
 
       {/* Right Panel - Editor */}
-      <div className="w-[60%] flex flex-col bg-white">
+      <div className="w-full md:w-[60%] flex flex-col bg-white md:h-full">
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#E5E5E5]">
           <div className="flex items-center justify-between px-8 py-4">
@@ -510,14 +544,19 @@ export function ProductEditor({ product }: { product: Product }) {
                 <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Basic Info</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[12px] text-[#737373] mb-1.5">Product Name</label>
-                    <input ref={titleRef} type="text" defaultValue={product?.title} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
+                    <label className="block text-[12px] text-[#737373] mb-1.5">Product Name (Managed in Identity tab)</label>
+                    <input 
+                      type="text" 
+                      value={computedFullTitle} 
+                      readOnly 
+                      className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded bg-[#FAFAFA] text-[#737373] focus:outline-none cursor-not-allowed font-medium" 
+                    />
                   </div>
                   <div>
                     <label className="block text-[12px] text-[#737373] mb-1.5">Short Name</label>
                     <input type="text" defaultValue={product?.shortName} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[12px] text-[#737373] mb-1.5">SKU</label>
                       <input ref={skuRef} type="text" defaultValue={product?.sku} className="w-full h-[36px] px-3 text-[13px] font-mono border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
@@ -527,7 +566,7 @@ export function ProductEditor({ product }: { product: Product }) {
                       <input ref={barcodeRef} type="text" defaultValue={product?.barcode} className="w-full h-[36px] px-3 text-[13px] font-mono border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[12px] text-[#737373] mb-1.5">Vendor</label>
                       <input ref={vendorRef} type="text" defaultValue={product?.vendor} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
@@ -542,8 +581,13 @@ export function ProductEditor({ product }: { product: Product }) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[12px] text-[#737373] mb-1.5">Product Type</label>
-                    <input ref={categoryRef} type="text" defaultValue={product?.category} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" />
+                    <label className="block text-[12px] text-[#737373] mb-1.5">Product Type (Managed in Identity tab)</label>
+                    <input 
+                      type="text" 
+                      value={identityAttrs.productType.charAt(0).toUpperCase() + identityAttrs.productType.slice(1)} 
+                      readOnly 
+                      className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded bg-[#FAFAFA] text-[#737373] focus:outline-none cursor-not-allowed font-medium" 
+                    />
                   </div>
                 </div>
               </section>
@@ -552,14 +596,15 @@ export function ProductEditor({ product }: { product: Product }) {
 
               <section className="space-y-4">
                 <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Product Details</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[12px] text-[#737373] mb-1.5">Gender</label>
-                    <select defaultValue={product?.gender} className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors">
-                      <option value="women">Women</option>
-                      <option value="men">Men</option>
-                      <option value="unisex">Unisex</option>
-                    </select>
+                    <label className="block text-[12px] text-[#737373] mb-1.5">Gender (Managed in Identity tab)</label>
+                    <input 
+                      type="text" 
+                      value={identityAttrs.gender === 'womens' ? "Women's" : identityAttrs.gender === 'mens' ? "Men's" : "Unisex"} 
+                      readOnly 
+                      className="w-full h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded bg-[#FAFAFA] text-[#737373] focus:outline-none cursor-not-allowed font-medium" 
+                    />
                   </div>
                   <div>
                     <label className="block text-[12px] text-[#737373] mb-1.5">Activity</label>
@@ -583,6 +628,232 @@ export function ProductEditor({ product }: { product: Product }) {
             </div>
           )}
 
+          {activeTab === 'identity' && (
+            <div className="space-y-8 max-w-4xl flex flex-col lg:flex-row gap-8">
+              {/* Left Column: Identity Card */}
+              <div className="flex-1 space-y-6">
+                <section className="space-y-4">
+                  <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">AYA Product Identity Panel</h3>
+                  
+                  <div className="p-5 bg-[#FAFAFA] border border-[#E5E5E5] rounded-lg space-y-4 shadow-2xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-[#737373] uppercase font-bold mb-1">Base Product Name</label>
+                        <span className="text-[13px] font-semibold text-[#0A0A0A] bg-white border border-[#E5E5E5] px-3 py-1.5 rounded block truncate">
+                          {computedBaseName || '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[#737373] uppercase font-bold mb-1">Full Product Title</label>
+                        <span className="text-[13px] font-bold text-[#0A0A0A] bg-white border border-[#E5E5E5] px-3 py-1.5 rounded block truncate">
+                          {computedFullTitle || '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-[#737373] uppercase font-bold mb-1">Product ID</label>
+                        <span className="text-[12px] font-mono text-[#737373] bg-[#F5F5F5] border border-[#E5E5E5] px-3 py-1.5 rounded block truncate">
+                          {product.id}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-[#737373] uppercase font-bold mb-1">SKU Prefix</label>
+                        <span className="text-[12px] font-mono text-[#0A0A0A] bg-white border border-[#E5E5E5] px-3 py-1.5 rounded block font-bold truncate">
+                          {computedSkuPrefix}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Handle and Lock section */}
+                    <div className="space-y-2 pt-2 border-t border-[#E5E5E5]">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-[10px] text-[#737373] uppercase font-bold">Product URL Handle</label>
+                        
+                        <label className="flex items-center gap-1.5 text-[11px] text-red-600 font-medium cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={!handleLocked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                if (confirm("Warning: Changing your product handle can affect SEO. Search engine indexation and active links will break if redirects are not configured. Are you sure you want to unlock?")) {
+                                  setHandleLocked(false)
+                                } else {
+                                  e.preventDefault()
+                                }
+                              } else {
+                                setHandleLocked(true)
+                              }
+                            }}
+                            className="rounded border-[#E5E5E5] text-red-600 focus:ring-red-500 accent-red-600 cursor-pointer"
+                          />
+                          Unlock Handle
+                        </label>
+                      </div>
+
+                      <div className="flex items-center">
+                        <span className="h-[36px] px-3 flex items-center bg-[#F5F5F5] border border-r-0 border-[#E5E5E5] rounded-l text-[#737373] text-[13px] font-mono">
+                          aya.com/products/
+                        </span>
+                        <input 
+                          type="text" 
+                          value={customHandle} 
+                          onChange={(e) => setCustomHandle(e.target.value)}
+                          disabled={handleLocked}
+                          className={cn(
+                            "flex-1 h-[36px] px-3 text-[13px] font-mono border rounded-r focus:outline-none focus:border-[#0A0A0A] transition-colors",
+                            handleLocked ? "bg-[#F5F5F5] text-[#737373] border-[#E5E5E5] cursor-not-allowed" : "bg-white text-[#0A0A0A] border-[#E5E5E5]"
+                          )}
+                        />
+                      </div>
+
+                      {!handleLocked && customHandle !== computedHandle && (
+                        <div className="flex items-center justify-between p-2 bg-purple-50 border border-purple-200 rounded-md mt-2">
+                          <span className="text-[11px] text-purple-700">Recommended: <code className="font-mono font-bold">{computedHandle}</code></span>
+                          <button 
+                            type="button"
+                            onClick={() => setCustomHandle(computedHandle)}
+                            className="text-[11px] font-bold text-white bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded transition-colors"
+                          >
+                            Sync Handle
+                          </button>
+                        </div>
+                      )}
+
+                      {!handleLocked && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-[11px] leading-relaxed flex gap-2 mt-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            <strong>SEO Warning:</strong> Changing this handle will break external search traffic and indexation unless a permanent 301 URL redirect is set up in Shopify.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E5E5E5]">
+                      <span className="text-[10px] font-bold text-[#A3A3A3] uppercase block mb-1">Canonical URL</span>
+                      <span className="text-[11px] text-[#006621] hover:underline cursor-pointer block font-mono truncate">
+                        {computedCanonical}
+                      </span>
+                    </div>
+
+                  </div>
+                </section>
+              </div>
+
+              {/* Right Column: Structured Attributes Grid */}
+              <div className="w-full lg:w-[420px] space-y-6">
+                <section className="space-y-4">
+                  <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Structured Engine Attributes</h3>
+                  
+                  <div className="border border-[#E5E5E5] rounded-lg p-5 bg-white space-y-4 max-h-[60vh] overflow-y-auto">
+                    {/* Primary Attributes */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] uppercase font-bold text-[#737373] tracking-wider block">Primary</span>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] text-[#737373] mb-1">Gender</label>
+                          <select 
+                            value={identityAttrs.gender}
+                            onChange={(e: any) => setIdentityAttrs(prev => ({ ...prev, gender: e.target.value }))}
+                            className="w-full h-[32px] px-2 text-[12px] border border-[#E5E5E5] rounded bg-white cursor-pointer"
+                          >
+                            {GENDER_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-[11px] text-[#737373] mb-1">Product Type</label>
+                          <select 
+                            value={identityAttrs.productType}
+                            onChange={(e: any) => setIdentityAttrs(prev => ({ ...prev, productType: e.target.value }))}
+                            className="w-full h-[32px] px-2 text-[12px] border border-[#E5E5E5] rounded bg-white cursor-pointer"
+                          >
+                            {PRODUCT_TYPE_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-[#737373] mb-1">Color</label>
+                        <select 
+                          value={identityAttrs.color}
+                          onChange={(e: any) => setIdentityAttrs(prev => ({ ...prev, color: e.target.value }))}
+                          className="w-full h-[32px] px-2 text-[12px] border border-[#E5E5E5] rounded bg-white cursor-pointer"
+                        >
+                          {COLOR_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-[#E5E5E5] w-full" />
+
+                    {/* Defining Attributes */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] uppercase font-bold text-[#737373] tracking-wider block">Identity Builders</span>
+                      
+                      {([
+                        { key: 'rise', label: 'Rise', options: RISE_OPTIONS },
+                        { key: 'fit', label: 'Fit', options: FIT_OPTIONS },
+                        { key: 'length', label: 'Length', options: LENGTH_OPTIONS },
+                        { key: 'support', label: 'Support', options: SUPPORT_OPTIONS },
+                        { key: 'coverage', label: 'Coverage', options: COVERAGE_OPTIONS },
+                        { key: 'material', label: 'Material', options: MATERIAL_OPTIONS },
+                        { key: 'performance', label: 'Performance', options: PERFORMANCE_OPTIONS },
+                        { key: 'construction', label: 'Construction', options: CONSTRUCTION_OPTIONS }
+                      ] as const).map(({ key, label, options }) => {
+                        const attrObj = identityAttrs[key] || { value: 'none', definesIdentity: false }
+                        return (
+                          <div key={key} className="flex flex-col p-2.5 border border-[#F5F5F5] bg-[#FAFAFA] rounded-md space-y-1.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[11px] font-bold text-[#404040]">{label}</span>
+                              <label className="flex items-center gap-1 text-[10px] text-[#737373] cursor-pointer select-none">
+                                <input 
+                                  type="checkbox"
+                                  checked={attrObj.definesIdentity}
+                                  onChange={(e) => {
+                                    setIdentityAttrs(prev => ({
+                                      ...prev,
+                                      [key]: { ...attrObj, definesIdentity: e.target.checked }
+                                    }))
+                                  }}
+                                  className="rounded border-[#E5E5E5] text-black focus:ring-black accent-black cursor-pointer"
+                                />
+                                Defines Identity
+                              </label>
+                            </div>
+                            <select
+                              value={attrObj.value}
+                              onChange={(e) => {
+                                setIdentityAttrs(prev => ({
+                                  ...prev,
+                                  [key]: { ...attrObj, value: e.target.value }
+                                }))
+                              }}
+                              className="w-full h-[28px] px-2 text-[12px] border border-[#E5E5E5] rounded bg-white cursor-pointer"
+                            >
+                              {options.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'seo' && (
             <div className="space-y-8 max-w-2xl">
               <section className="space-y-4">
@@ -591,20 +862,21 @@ export function ProductEditor({ product }: { product: Product }) {
                 <SEOPreview 
                   title={seoTitle} 
                   description={seoDesc}
-                  handle={product?.seo?.handle || 'product-handle'}
+                  handle={customHandle || 'product-handle'}
                 />
 
                 <div className="space-y-4 mt-6">
                   <div>
-                    <label className="block text-[12px] text-[#737373] mb-1.5">URL Handle</label>
+                    <label className="block text-[12px] text-[#737373] mb-1.5">URL Handle (Managed in Identity tab)</label>
                     <div className="flex items-center">
                       <span className="h-[36px] px-3 flex items-center bg-[#FAFAFA] border border-r-0 border-[#E5E5E5] rounded-l text-[#737373] text-[13px]">
                         aya.com/products/
                       </span>
                       <input 
                         type="text" 
-                        defaultValue={product?.seo?.handle || ''} 
-                        className="flex-1 h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded-r focus:outline-none focus:border-[#0A0A0A] bg-white transition-colors" 
+                        value={customHandle} 
+                        readOnly
+                        className="flex-1 h-[36px] px-3 text-[13px] border border-[#E5E5E5] rounded-r bg-[#FAFAFA] text-[#737373] focus:outline-none cursor-not-allowed font-mono" 
                       />
                     </div>
                   </div>
@@ -651,7 +923,7 @@ export function ProductEditor({ product }: { product: Product }) {
             <div className="space-y-8 max-w-2xl">
               <section className="space-y-4">
                 <h3 className="text-[11px] uppercase tracking-wider text-[#737373] font-medium">Pricing</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[12px] text-[#737373] mb-1.5">Price</label>
                     <div className="relative">

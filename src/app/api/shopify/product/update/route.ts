@@ -6,7 +6,7 @@ import { mockProducts } from '@/lib/mock/products'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { id, title, status, vendor, tags, variants, seo } = body
+    const { id, title, handle, status, vendor, tags, variants, seo, price } = body
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 })
@@ -22,15 +22,26 @@ export async function POST(req: NextRequest) {
       
       if (mockProduct) {
         if (title) mockProduct.title = title
+        if (handle) {
+          mockProduct.handle = handle
+        }
         if (status) mockProduct.status = status.toLowerCase() as 'active' | 'draft' | 'archived'
         if (vendor) mockProduct.vendor = vendor
         if (tags) mockProduct.tags = tags
+        if (price !== undefined) {
+          mockProduct.price = Number(price)
+          if (mockProduct.variants) {
+            mockProduct.variants.forEach(v => {
+              v.price = Number(price)
+            })
+          }
+        }
         if (seo) {
           mockProduct.seo = {
             ...mockProduct.seo,
             title: seo.title || mockProduct.seo?.title || '',
             description: seo.description || mockProduct.seo?.description || '',
-            handle: mockProduct.seo?.handle || ''
+            handle: handle || mockProduct.seo?.handle || ''
           }
         }
         if (Array.isArray(variants)) {
@@ -68,6 +79,7 @@ export async function POST(req: NextRequest) {
         input: {
           id: fullShopifyId,
           title,
+          handle,
           status: status ? status.toUpperCase() : undefined,
           vendor,
           tags: Array.isArray(tags) ? tags : undefined,

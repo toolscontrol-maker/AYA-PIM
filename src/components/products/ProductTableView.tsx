@@ -15,14 +15,17 @@ import { SEOScoreCell } from './SEOScoreCell'
 import { StatusBadge } from './StatusBadge'
 import { ContextMenu, ContextMenuItem } from './ContextMenu'
 import Link from 'next/link'
-import { Edit2, Copy, Tag, Trash2, Settings, FolderPlus, RefreshCw } from 'lucide-react'
+import { Edit2, Copy, Tag, Trash2, Settings, FolderPlus, RefreshCw, Download } from 'lucide-react'
 import { mockProducts as fallbackProducts } from '@/lib/mock/products'
 import { useUIStore } from '@/lib/store/ui.store'
+import { NewProductModal } from './NewProductModal'
+import { ExportModal } from './ExportModal'
 
 interface TableProduct {
   id: string
   name: string
   shortName: string
+  handle: string
   image: string
   gender: string
   category: string
@@ -42,6 +45,7 @@ const mapProductToTableRow = (p: any): TableProduct => ({
   id: p.id,
   name: p.title || p.name || 'Untitled Product',
   shortName: p.shortName || (p.title ? p.title.split(' ')[0] : 'Item'),
+  handle: p.handle || p.seo?.handle || '',
   image: p.images?.[0]?.src || p.image || `https://images.unsplash.com/photo-1518611012118-696072aa579a?w=100&q=80`,
   gender: p.gender ? p.gender.charAt(0).toUpperCase() + p.gender.slice(1) : 'Unisex',
   category: p.category || 'Activewear',
@@ -67,8 +71,14 @@ export function ProductTableView() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, rowId: string } | null>(null)
+  
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
-  const { toggleProductSelection, clearSelection, selectAllProducts } = useUIStore()
+  const { selectedProductIds, toggleProductSelection, clearSelection, selectAllProducts, openNewProductModal } = useUIStore()
+
+  const selectedProducts = useMemo(() => {
+    return data.filter(p => selectedProductIds.has(p.id))
+  }, [data, selectedProductIds])
 
   // Fetch products from Shopify sync endpoint
   const fetchProducts = async () => {
@@ -262,7 +272,7 @@ export function ProductTableView() {
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
       {/* Dynamic Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-[#E5E5E5]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-3 border-b border-[#E5E5E5] gap-2">
         <div>
           <h1 className="text-[15px] font-semibold tracking-tight">Products</h1>
           <p className="text-[12px] text-[#737373] mt-0.5">
@@ -279,14 +289,17 @@ export function ProductTableView() {
           <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] text-[#404040] border border-[#E5E5E5] rounded hover:bg-[#FAFAFA] transition-colors">
             Columns
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-[#0A0A0A] text-white rounded hover:bg-[#262626] transition-colors">
+          <button 
+            onClick={openNewProductModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[13px] bg-[#0A0A0A] text-white rounded hover:bg-[#262626] transition-colors"
+          >
             + New Product
           </button>
         </div>
       </div>
 
       {/* Controls Bar */}
-      <div className="flex items-center justify-between px-6 py-2.5 border-b border-[#E5E5E5] bg-white text-[13px]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-2.5 border-b border-[#E5E5E5] bg-white text-[13px] gap-2">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-[#FAFAFA] p-0.5 rounded border border-[#E5E5E5]">
             {['all', 'active', 'draft', 'archived'].map(st => (
@@ -424,6 +437,39 @@ export function ProductTableView() {
             { label: 'Delete', onClick: () => {}, danger: true },
           ]}
         />
+      )}
+      <NewProductModal productsList={data} />
+      
+      <ExportModal 
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        selectedProducts={selectedProducts}
+      />
+
+      {/* Floating Bulk Actions Bar */}
+      {selectedProductIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 px-4 py-2.5 bg-[#0A0A0A] border border-purple-950/40 text-white rounded-lg shadow-xl aya-pattern-dark aya-pattern-glow animate-slide-up">
+          <span className="text-xs font-medium text-purple-300 font-mono">
+            {selectedProductIds.size} seleccionados
+          </span>
+          <div className="w-px h-4 bg-purple-950/60" />
+          <button
+            onClick={() => setExportModalOpen(true)}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition-colors border border-purple-500/30 shadow-sm cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Exportar Selección
+          </button>
+          <button
+            onClick={() => {
+              clearSelection()
+              setRowSelection({})
+            }}
+            className="px-2.5 py-1.5 border border-purple-950 text-purple-300 rounded text-xs hover:bg-purple-950 hover:text-white transition-colors cursor-pointer"
+          >
+            Despejar
+          </button>
+        </div>
       )}
     </div>
   )

@@ -219,3 +219,42 @@
 .animate-fade-in { animation: fade-in 150ms ease-out forwards; }
 .animate-scale-in { animation: scale-in 120ms ease-out forwards; }
 .animate-slide-up { animation: slide-up 200ms ease-out forwards; }
+
+/* AYA Premium Brand Styling & AI Animations */
+@keyframes gradient-slow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-slow {
+  background-size: 200% 200%;
+  animation: gradient-slow 8s ease infinite;
+}
+
+.aya-pattern {
+  background-color: #ffffff;
+  background-image: radial-gradient(rgba(10, 10, 10, 0.05) 1px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.aya-pattern-dark {
+  background-color: #0A0A0A;
+  background-image: radial-gradient(rgba(168, 85, 247, 0.08) 1.2px, transparent 0);
+  background-size: 20px 20px;
+}
+
+.aya-pattern-glow {
+  position: relative;
+}
+
+.aya-pattern-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 10%, rgba(168, 85, 247, 0.16) 0%, transparent 60%),
+              radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+

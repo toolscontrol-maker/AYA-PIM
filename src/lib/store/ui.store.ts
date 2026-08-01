@@ -7,6 +7,11 @@ interface UIState {
   openCommandPalette: () => void
   closeCommandPalette: () => void
 
+  // New Product Modal
+  newProductModalOpen: boolean
+  openNewProductModal: () => void
+  closeNewProductModal: () => void
+
   // Sidebar
   sidebarCollapsed: boolean
   toggleSidebar: () => void
@@ -58,6 +63,11 @@ export const useUIStore = create<UIState>()(
     commandPaletteOpen: false,
     openCommandPalette: () => set({ commandPaletteOpen: true }),
     closeCommandPalette: () => set({ commandPaletteOpen: false }),
+
+    // New Product Modal
+    newProductModalOpen: false,
+    openNewProductModal: () => set({ newProductModalOpen: true }),
+    closeNewProductModal: () => set({ newProductModalOpen: false }),
 
     // Sidebar
     sidebarCollapsed: false,
